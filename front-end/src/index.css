@@ -1,0 +1,212 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* GESTAD Design System - Academic Management System
+Professional, institutional and minimalist aesthetic with neutral palette
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Core institutional palette */
+    --background: 0 0% 100%;
+    --foreground: 215 16% 16%;
+
+    /* Cards and surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 215 16% 16%;
+    --card-border: 220 9% 88%;
+
+    /* Popover and overlays */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 16% 16%;
+
+    /* Primary - Institutional blue */
+    --primary: 210 100% 25%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 210 40% 85%;
+
+    /* Secondary - Neutral gray */
+    --secondary: 220 9% 95%;
+    --secondary-foreground: 215 16% 16%;
+
+    /* Muted elements */
+    --muted: 220 9% 96%;
+    --muted-foreground: 215 8% 55%;
+
+    /* Accent - Academic green */
+    --accent: 155 30% 85%;
+    --accent-foreground: 155 40% 25%;
+
+    /* Success - Academic progress */
+    --success: 155 60% 35%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning - Academic alerts */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Destructive - Errors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Form elements */
+    --border: 220 9% 88%;
+    --input: 220 9% 88%;
+    --ring: 210 100% 25%;
+
+    /* Design system */
+    --radius: 0.5rem;
+
+    /* Sidebar - Academic navigation */
+    --sidebar-background: 215 25% 96%;
+    --sidebar-foreground: 215 16% 16%;
+    --sidebar-primary: 210 100% 25%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 9% 88%;
+    --sidebar-accent-foreground: 215 16% 16%;
+    --sidebar-border: 220 9% 85%;
+    --sidebar-ring: 210 100% 25%;
+
+    /* Academic gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 25%), hsl(210 80% 35%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(220 9% 98%));
+    --gradient-success: linear-gradient(135deg, hsl(155 60% 35%), hsl(155 50% 45%));
+
+    /* Shadows */
+    --shadow-card: 0 1px 3px 0 hsl(220 9% 85% / 0.2), 0 1px 2px -1px hsl(220 9% 85% / 0.2);
+    --shadow-elevated: 0 4px 6px -1px hsl(220 9% 85% / 0.3), 0 2px 4px -2px hsl(220 9% 85% / 0.3);
+
+    /* Academic animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease-out;
+  }
+
+  .dark {
+    /* Dark mode - maintaining contrast and professionalism */
+    --background: 220 15% 8%;
+    --foreground: 220 9% 92%;
+
+    --card: 220 15% 10%;
+    --card-foreground: 220 9% 92%;
+    --card-border: 220 15% 15%;
+
+    --popover: 220 15% 10%;
+    --popover-foreground: 220 9% 92%;
+
+    /* Primary - Lighter institutional blue for dark mode */
+    --primary: 210 80% 55%;
+    --primary-foreground: 220 15% 8%;
+    --primary-muted: 210 30% 25%;
+
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 220 9% 92%;
+
+    --muted: 220 15% 12%;
+    --muted-foreground: 220 6% 65%;
+
+    /* Accent - Muted academic green for dark */
+    --accent: 155 20% 25%;
+    --accent-foreground: 155 30% 85%;
+
+    --success: 155 50% 45%;
+    --success-foreground: 220 15% 8%;
+
+    --warning: 38 85% 55%;
+    --warning-foreground: 220 15% 8%;
+
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 220 15% 8%;
+
+    --border: 220 15% 15%;
+    --input: 220 15% 15%;
+    --ring: 210 80% 55%;
+
+    /* Dark sidebar */
+    --sidebar-background: 220 15% 6%;
+    --sidebar-foreground: 220 9% 92%;
+    --sidebar-primary: 210 80% 55%;
+    --sidebar-primary-foreground: 220 15% 8%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 220 9% 92%;
+    --sidebar-border: 220 15% 12%;
+    --sidebar-ring: 210 80% 55%;
+
+    /* Dark gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(210 80% 55%), hsl(210 70% 45%));
+    --gradient-card: linear-gradient(180deg, hsl(220 15% 10%), hsl(220 15% 8%));
+    --gradient-success: linear-gradient(135deg, hsl(155 50% 45%), hsl(155 40% 35%));
+
+    /* Dark shadows */
+    --shadow-card: 0 1px 3px 0 hsl(220 15% 0% / 0.3), 0 1px 2px -1px hsl(220 15% 0% / 0.3);
+    --shadow-elevated: 0 4px 6px -1px hsl(220 15% 0% / 0.4), 0 2px 4px -2px hsl(220 15% 0% / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Academic utility classes */
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  .transition-fast {
+    transition: var(--transition-fast);
+  }
+
+  /* Academic progress indicators */
+  .progress-ring {
+    @apply relative;
+  }
+
+  .progress-ring::after {
+    content: '';
+    @apply absolute inset-0 rounded-full border-2 border-primary/20;
+  }
+
+  .progress-complete::after {
+    @apply border-success;
+  }
+
+  /* Academic status badges */
+  .status-active {
+    @apply bg-success/10 text-success border border-success/20;
+  }
+
+  .status-pending {
+    @apply bg-warning/10 text-warning border border-warning/20;
+  }
+
+  .status-inactive {
+    @apply bg-muted text-muted-foreground border border-border;
+  }
+}
