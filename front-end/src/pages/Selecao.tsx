@@ -2,47 +2,76 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Users, BookOpen, GraduationCap, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getUserRoles, Role } from "@/lib/api";
 
 const Selecao = () => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle("dark");
   };
 
-  const profileOptions = [
+  useEffect(() => {
+    const loadUserRoles = async () => {
+      try {
+        const roles = await getUserRoles();
+        setUserRoles(roles);
+      } catch (error) {
+        console.error('Error loading user roles:', error);
+        // Redirect to login if unauthorized
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserRoles();
+  }, [navigate]);
+
+  const allProfileOptions = [
     {
       title: "Administrativo",
       description: "Acesso completo ao sistema de gestão acadêmica",
       icon: Settings,
       route: "/administrativo",
-      color: "bg-primary/10 text-primary"
+      color: "bg-primary/10 text-primary",
+      requiredRole: "admin"
     },
     {
       title: "Docente",
       description: "Acompanhamento dos seus orientandos",
       icon: Users,
-      route: "/docente", 
-      color: "bg-secondary/10 text-secondary"
+      route: "/docente",
+      color: "bg-secondary/10 text-secondary",
+      requiredRole: "docente"
     },
     {
       title: "Mestrado",
       description: "Portal do discente de mestrado",
       icon: BookOpen,
       route: "/discente",
-      color: "bg-accent/10 text-accent"
+      color: "bg-accent/10 text-accent",
+      requiredRole: "discente"
     },
     {
-      title: "Doutorado", 
+      title: "Doutorado",
       description: "Portal do discente de doutorado",
       icon: GraduationCap,
       route: "/discente",
-      color: "bg-muted/30 text-muted-foreground"
+      color: "bg-muted/30 text-muted-foreground",
+      requiredRole: "discente"
     }
   ];
+
+  // Filter profile options based on user roles
+  const profileOptions = allProfileOptions.filter(option => {
+    return userRoles.some(role => role.slug === option.requiredRole);
+  });
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -95,38 +124,48 @@ const Selecao = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {profileOptions.map((option) => (
-                <Card 
-                  key={option.title}
-                  className="cursor-pointer hover:shadow-lg transition-shadow border-card-border"
-                  onClick={() => navigate(option.route)}
-                >
-                  <CardHeader className="text-center pb-4">
-                    <div className={`w-16 h-16 rounded-full ${option.color} flex items-center justify-center mx-auto mb-4`}>
-                      <option.icon className="w-8 h-8" />
-                    </div>
-                    <CardTitle className="text-xl text-foreground">
-                      {option.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center">
-                    <p className="text-muted-foreground mb-4">
-                      {option.description}
-                    </p>
-                    <Button 
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(option.route);
-                      }}
-                    >
-                      Acessar
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center">
+                <p className="text-muted-foreground">Carregando perfis...</p>
+              </div>
+            ) : profileOptions.length === 0 ? (
+              <div className="text-center">
+                <p className="text-muted-foreground">Nenhum perfil disponível para este usuário.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {profileOptions.map((option) => (
+                  <Card
+                    key={option.title}
+                    className="cursor-pointer hover:shadow-lg transition-shadow border-card-border"
+                    onClick={() => navigate(option.route)}
+                  >
+                    <CardHeader className="text-center pb-4">
+                      <div className={`w-16 h-16 rounded-full ${option.color} flex items-center justify-center mx-auto mb-4`}>
+                        <option.icon className="w-8 h-8" />
+                      </div>
+                      <CardTitle className="text-xl text-foreground">
+                        {option.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <p className="text-muted-foreground mb-4">
+                        {option.description}
+                      </p>
+                      <Button
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(option.route);
+                        }}
+                      >
+                        Acessar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>

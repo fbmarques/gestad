@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, GraduationCap, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "@/lib/api";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -41,16 +41,16 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Get CSRF cookie first
-      await axios.get('/sanctum/csrf-cookie');
-
-      // Make login request
-      const response = await axios.post('/api/login', {
+      // Make login request directly
+      const response = await api.post('/api/login', {
         email,
         password,
       });
 
-      if (response.data.redirect) {
+      if (response.data.redirect && response.data.token) {
+        // Store the authentication token
+        localStorage.setItem('auth-token', response.data.token);
+
         toast({
           title: "Login realizado com sucesso",
           description: "Redirecionando...",
