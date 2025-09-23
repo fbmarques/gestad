@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
+import { useTheme } from "@/hooks/useTheme";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,16 +33,11 @@ const baseProducoes: Omit<Producao, "status">[] = [
 ];
 
 const ProducoesStatus = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [tab, setTab] = useState<"deferida" | "indeferida">("deferida");
-
-  const toggleTheme = () => {
-    setIsDarkMode((v) => !v);
-    document.documentElement.classList.toggle("dark");
-  };
 
   useEffect(() => {
     document.title = "Publicações Deferidas e Indeferidas | GESTAD";

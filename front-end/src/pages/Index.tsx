@@ -3,16 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { GraduationCap, Users, BookOpen, FileText, Calendar, Award, Moon, Sun, CheckCircle, BarChart3, Database, Shield, Clock, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useTheme } from "@/hooks/useTheme";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
+  const { isDarkMode, toggleTheme } = useTheme();
 
   const realFeatures = [
     {

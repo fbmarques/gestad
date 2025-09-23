@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Selecao from "./pages/Selecao";
@@ -9,6 +10,7 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
@@ -19,6 +21,7 @@ function App() {
             <Route path="/discente" element={<div>Discente</div>} />
           </Routes>
         </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

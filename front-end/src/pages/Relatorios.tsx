@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminTopNav from "@/components/AdminTopNav";
+import { useTheme } from "@/hooks/useTheme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 const Relatorios = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -43,11 +44,6 @@ const Relatorios = () => {
   const [selectedType, setSelectedType] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedReportFilters, setSelectedReportFilters] = useState<{[key: string]: any}>({});
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
 
   const reportCategories = [
     {

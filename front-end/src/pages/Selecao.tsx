@@ -4,17 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Moon, Sun, Users, BookOpen, GraduationCap, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getUserRoles, Role } from "@/lib/api";
+import { useTheme } from "@/hooks/useTheme";
 
 const Selecao = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [userRoles, setUserRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
 
   useEffect(() => {
     const loadUserRoles = async () => {

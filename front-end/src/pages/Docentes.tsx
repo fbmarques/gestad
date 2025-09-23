@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +68,7 @@ const mockDocentes: Docente[] = [
 ];
 
 const Docentes = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [docentes, setDocentes] = useState<Docente[]>(mockDocentes);
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,11 +77,6 @@ const Docentes = () => {
   const [editDocenteOpen, setEditDocenteOpen] = useState(false);
   const [selectedLinhaPesquisa, setSelectedLinhaPesquisa] = useState("");
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
 
   const filteredDocentes = docentes.filter(docente =>
     docente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||

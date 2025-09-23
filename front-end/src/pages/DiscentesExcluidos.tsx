@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
+import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,17 +56,12 @@ const mockDiscentesExcluidos: DiscenteExcluido[] = [
 ];
 
 const DiscentesExcluidos = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [discentes, setDiscentes] = useState<DiscenteExcluido[]>(mockDiscentesExcluidos);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
 
   const filteredDiscentes = discentes.filter(discente =>
     discente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||

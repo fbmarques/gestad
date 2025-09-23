@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/useTheme";
 import { Moon, Sun, MessageCircle } from "lucide-react";
 import { WelcomeSection } from "@/components/discente/WelcomeSection";
 import { BasicInfoSection } from "@/components/discente/BasicInfoSection";
@@ -14,12 +14,7 @@ import { ProductionsSection } from "@/components/discente/ProductionsSection";
 import { EventsSection } from "@/components/discente/EventsSection";
 
 const Discente = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle("dark");
-  };
+  const { isDarkMode, toggleTheme } = useTheme();
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
