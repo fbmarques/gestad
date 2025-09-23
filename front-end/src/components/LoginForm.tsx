@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -14,11 +16,12 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!email || !password) {
       setError("Email e senha são obrigatórios");
       return;
@@ -30,15 +33,39 @@ export function LoginForm() {
     }
 
     setIsLoading(true);
-    
-    // Simulate login API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Redirecionando para o dashboard...",
+
+    try {
+      // Get CSRF cookie first
+      await axios.get('/sanctum/csrf-cookie');
+
+      // Make login request
+      const response = await axios.post('/api/login', {
+        email,
+        password,
       });
-    }, 1500);
+
+      if (response.data.redirect) {
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Redirecionando...",
+        });
+        navigate(response.data.redirect);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        if (error.response.data.errors?.email) {
+          setError(error.response.data.errors.email[0]);
+        } else if (error.response.data.message) {
+          setError(error.response.data.message);
+        } else {
+          setError("Credenciais inválidas");
+        }
+      } else {
+        setError("Erro no servidor. Tente novamente.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

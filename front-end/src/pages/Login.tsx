@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, GraduationCap, Moon, Sun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Index = () => {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ const Index = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!email || !password) {
       setError("Email e senha são obrigatórios");
       return;
@@ -38,16 +39,39 @@ const Index = () => {
     }
 
     setIsLoading(true);
-    
-    // Simulate login API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Redirecionando para seleção de perfil...",
+
+    try {
+      // Get CSRF cookie first
+      await axios.get('/sanctum/csrf-cookie');
+
+      // Make login request
+      const response = await axios.post('/api/login', {
+        email,
+        password,
       });
-      navigate("/selecao");
-    }, 1500);
+
+      if (response.data.redirect) {
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Redirecionando...",
+        });
+        navigate(response.data.redirect);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 422) {
+        if (error.response.data.errors?.email) {
+          setError(error.response.data.errors.email[0]);
+        } else if (error.response.data.message) {
+          setError(error.response.data.message);
+        } else {
+          setError("Credenciais inválidas");
+        }
+      } else {
+        setError("Erro no servidor. Tente novamente.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

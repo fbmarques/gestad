@@ -22,8 +22,8 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="GESTAD - Sistema de Gestão Acadêmica">
 
-    <!-- React Assets - Static build -->
-    <link rel="stylesheet" href="{{ asset('dist/assets/index-BrcjgY6b.css') }}">
+    @viteReactRefresh
+    @vite(['front-end/src/main.tsx'])
 </head>
 <body>
     <!-- React Application mounts here -->
@@ -36,8 +36,5 @@
             baseUrl: '{{ url('/') }}'
         };
     </script>
-
-    <!-- React Bundle -->
-    <script type="module" crossorigin src="{{ asset('dist/assets/index-DspbjVCR.js') }}"></script>
 </body>
 </html>
