@@ -34,7 +34,7 @@ class LoginTest extends TestCase
 
     public function test_login_with_valid_credentials(): void
     {
-        $response = $this->postJson('/login', [
+        $response = $this->postJson('/api/login', [
             'email' => 'admin@minhapesquisa.com.br',
             'password' => '123321',
         ]);
@@ -58,7 +58,7 @@ class LoginTest extends TestCase
 
     public function test_login_with_invalid_email(): void
     {
-        $response = $this->postJson('/login', [
+        $response = $this->postJson('/api/login', [
             'email' => 'invalid@example.com',
             'password' => '123321',
         ]);
@@ -76,7 +76,7 @@ class LoginTest extends TestCase
 
     public function test_login_with_invalid_password(): void
     {
-        $response = $this->postJson('/login', [
+        $response = $this->postJson('/api/login', [
             'email' => 'admin@minhapesquisa.com.br',
             'password' => 'wrong-password',
         ]);
@@ -94,7 +94,7 @@ class LoginTest extends TestCase
 
     public function test_login_validation_errors(): void
     {
-        $response = $this->postJson('/login', [
+        $response = $this->postJson('/api/login', [
             'email' => 'invalid-email',
             'password' => '123',
         ]);
@@ -107,7 +107,7 @@ class LoginTest extends TestCase
 
     public function test_login_with_missing_fields(): void
     {
-        $response = $this->postJson('/login', []);
+        $response = $this->postJson('/api/login', []);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['email', 'password']);
@@ -120,7 +120,7 @@ class LoginTest extends TestCase
         $user = User::where('email', 'admin@minhapesquisa.com.br')->first();
         $this->actingAs($user);
 
-        $response = $this->postJson('/logout');
+        $response = $this->postJson('/api/logout');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -135,7 +135,7 @@ class LoginTest extends TestCase
         $user = User::where('email', 'admin@minhapesquisa.com.br')->first();
         $this->actingAs($user);
 
-        $response = $this->getJson('/user');
+        $response = $this->getJson('/api/user');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -150,7 +150,7 @@ class LoginTest extends TestCase
 
     public function test_get_user_when_not_authenticated(): void
     {
-        $response = $this->getJson('/user');
+        $response = $this->getJson('/api/user');
 
         $response->assertStatus(401)
             ->assertJson([

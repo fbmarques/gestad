@@ -22,4 +22,46 @@ class ProfileController extends Controller
             'roles' => $roles
         ]);
     }
+
+    public function updateTheme(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $request->validate([
+            'theme' => 'required|boolean',
+        ]);
+
+        $user->update([
+            'theme' => $request->theme,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'theme' => $user->theme,
+            'message' => 'Theme preference updated successfully'
+        ]);
+    }
+
+    public function getUserProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'theme' => $user->theme,
+            ]
+        ]);
+    }
 }
