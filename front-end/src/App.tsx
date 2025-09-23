@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Selecao from "./pages/Selecao";
+import Administrativo from "./pages/Administrativo";
 
 const queryClient = new QueryClient();
 
@@ -16,7 +17,7 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/selecao" element={<Selecao />} />
-            <Route path="/administrativo" element={<div>Administrativo</div>} />
+            <Route path="/administrativo" element={<Administrativo />} />
             <Route path="/docente" element={<div>Docente</div>} />
             <Route path="/discente" element={<div>Discente</div>} />
           </Routes>

@@ -7,8 +7,6 @@ const Administrativo = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
 
-
-
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
