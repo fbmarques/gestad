@@ -57,6 +57,23 @@ export interface ResearchLine {
   deleted_at?: string;
 }
 
+// Courses types
+export interface Course {
+  id: number;
+  code: string;
+  name: string;
+  description?: string;
+  credits: number;
+  deleted_at?: string;
+}
+
+export interface CourseFormData {
+  code: string;
+  name: string;
+  description?: string;
+  credits: number;
+}
+
 export interface Docente {
   id: number;
   name: string;
@@ -124,6 +141,41 @@ export const getDocentes = async (): Promise<Docente[]> => {
   await api.get('/sanctum/csrf-cookie');
   const response = await api.get<Docente[]>('/api/docentes');
   return response.data;
+};
+
+// Courses API functions
+export const getCourses = async (): Promise<Course[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Course[]>('/api/courses');
+  return response.data;
+};
+
+export const getTrashedCourses = async (): Promise<Course[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Course[]>('/api/courses-trashed');
+  return response.data;
+};
+
+export const createCourse = async (data: CourseFormData): Promise<Course> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post('/api/courses', data);
+  return response.data.data;
+};
+
+export const updateCourse = async (id: number, data: CourseFormData): Promise<Course> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/courses/${id}`, data);
+  return response.data.data;
+};
+
+export const deleteCourse = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/courses/${id}`);
+};
+
+export const restoreCourse = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/courses/${id}/restore`);
 };
 
 export default api;

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResearchLineController;
 use Illuminate\Support\Facades\Route;
@@ -21,4 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/research-lines-trashed', [ResearchLineController::class, 'trashed']);
     Route::post('/research-lines/{id}/restore', [ResearchLineController::class, 'restore']);
     Route::get('/docentes', [ResearchLineController::class, 'docentes']);
+
+    // Courses routes (accessible by admin and docente)
+    Route::apiResource('courses', CourseController::class);
+    Route::get('/courses-trashed', [CourseController::class, 'trashed']);
+    Route::post('/courses/{id}/restore', [CourseController::class, 'restore']);
 });

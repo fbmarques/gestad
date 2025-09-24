@@ -1,69 +1,106 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getCourses, createCourse, updateCourse, deleteCourse, Course, CourseFormData } from '@/lib/api';
 
-interface Disciplina {
-  id: string;
-  codigo: string;
-  nome: string;
-  creditos: number;
-}
-
-
-const mockDisciplinas: Disciplina[] = [
-  { id: "1", codigo: "CC001", nome: "Algoritmos e Estruturas de Dados", creditos: 4 },
-  { id: "2", codigo: "CC002", nome: "Programação Orientada a Objetos", creditos: 4 },
-  { id: "3", codigo: "CC003", nome: "Banco de Dados", creditos: 4 },
-  { id: "4", codigo: "CC004", nome: "Engenharia de Software", creditos: 4 },
-  { id: "5", codigo: "CC005", nome: "Redes de Computadores", creditos: 4 },
-  { id: "6", codigo: "CC006", nome: "Sistemas Operacionais", creditos: 4 },
-  { id: "7", codigo: "CC007", nome: "Inteligência Artificial", creditos: 4 },
-  { id: "8", codigo: "CC008", nome: "Compiladores", creditos: 4 },
-  { id: "9", codigo: "CC009", nome: "Computação Gráfica", creditos: 4 },
-  { id: "10", codigo: "CC010", nome: "Segurança da Informação", creditos: 4 },
-  { id: "11", codigo: "CC011", nome: "Interação Humano-Computador", creditos: 3 },
-  { id: "12", codigo: "CC012", nome: "Mineração de Dados", creditos: 4 },
-  { id: "13", codigo: "CC013", nome: "Sistemas Distribuídos", creditos: 4 },
-  { id: "14", codigo: "CC014", nome: "Arquitetura de Computadores", creditos: 4 },
-  { id: "15", codigo: "CC015", nome: "Teoria da Computação", creditos: 4 },
-  { id: "16", codigo: "CC016", nome: "Métodos Numéricos", creditos: 3 },
-  { id: "17", codigo: "CC017", nome: "Processamento de Imagens", creditos: 4 },
-  { id: "18", codigo: "CC018", nome: "Robótica", creditos: 4 },
-  { id: "19", codigo: "CC019", nome: "Computação Móvel", creditos: 3 },
-  { id: "20", codigo: "CC020", nome: "Blockchain e Criptomoedas", creditos: 3 }
-];
 
 const Disciplinas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>(mockDisciplinas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const filteredDisciplinas = disciplinas.filter(disciplina =>
-    disciplina.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    disciplina.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    disciplina.creditos.toString().includes(searchTerm)
+  // React Query for courses data
+  const { data: courses = [], isLoading, error } = useQuery({
+    queryKey: ['courses'],
+    queryFn: getCourses,
+  });
+
+  // Form for adding courses
+  const addForm = useForm<CourseFormData>();
+
+  // Form for editing courses
+  const editForm = useForm<CourseFormData>();
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createCourse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      setAddDialogOpen(false);
+      addForm.reset();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: CourseFormData }) => updateCourse(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      setEditDialogOpen(false);
+      setEditingCourse(null);
+      editForm.reset();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCourse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+    },
+  });
+
+  const filteredCourses = courses.filter(course =>
+    course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.credits.toString().includes(searchTerm)
   );
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredDisciplinas.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentDisciplinas = filteredDisciplinas.slice(startIndex, endIndex);
+  const currentCourses = filteredCourses.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setDisciplinas(prev => prev.filter(d => d.id !== id));
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleEdit = (course: Course) => {
+    setEditingCourse(course);
+    editForm.reset({
+      code: course.code,
+      name: course.name,
+      description: course.description || '',
+      credits: course.credits,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const onAddSubmit = (data: CourseFormData) => {
+    createMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: CourseFormData) => {
+    if (editingCourse) {
+      updateMutation.mutate({ id: editingCourse.id, data });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -81,6 +118,40 @@ const Disciplinas = () => {
     setCurrentPage(1);
   };
 
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-center items-center py-8">
+                <div className="text-muted-foreground">Carregando disciplinas...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-center items-center py-8">
+                <div className="text-destructive">Erro ao carregar disciplinas</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
@@ -94,7 +165,7 @@ const Disciplinas = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>Gerenciamento de Disciplinas</CardTitle>
                   <div className="flex gap-2">
-                    <Dialog>
+                    <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
                       <DialogTrigger asChild>
                         <Button className="gap-2">
                           <Plus className="w-4 h-4" />
@@ -105,15 +176,43 @@ const Disciplinas = () => {
                         <DialogHeader>
                           <DialogTitle>Adicionar Nova Disciplina</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
-                          <Input placeholder="Código da disciplina" />
-                          <Input placeholder="Nome da disciplina" />
-                          <Input placeholder="Número de créditos" type="number" />
+                        <form onSubmit={addForm.handleSubmit(onAddSubmit)} className="space-y-4">
+                          <Input
+                            {...addForm.register('code', { required: true })}
+                            placeholder="Código da disciplina"
+                          />
+                          <Input
+                            {...addForm.register('name', { required: true })}
+                            placeholder="Nome da disciplina"
+                          />
+                          <Input
+                            {...addForm.register('credits', { required: true, valueAsNumber: true })}
+                            placeholder="Número de créditos"
+                            type="number"
+                            min="1"
+                            max="99999"
+                          />
+                          <Textarea
+                            {...addForm.register('description')}
+                            placeholder="Descrição (opcional)"
+                            rows={3}
+                          />
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline">Cancelar</Button>
-                            <Button>Salvar</Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setAddDialogOpen(false)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={createMutation.isPending}
+                            >
+                              {createMutation.isPending ? 'Salvando...' : 'Salvar'}
+                            </Button>
                           </div>
-                        </div>
+                        </form>
                       </DialogContent>
                     </Dialog>
                     
@@ -173,33 +272,20 @@ const Disciplinas = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentDisciplinas.map((disciplina) => (
-                          <TableRow key={disciplina.id}>
-                            <TableCell className="font-medium">{disciplina.codigo}</TableCell>
-                            <TableCell>{disciplina.nome}</TableCell>
-                            <TableCell>{disciplina.creditos}</TableCell>
+                        {currentCourses.map((course) => (
+                          <TableRow key={course.id}>
+                            <TableCell className="font-medium">{course.code}</TableCell>
+                            <TableCell>{course.name}</TableCell>
+                            <TableCell>{course.credits}</TableCell>
                             <TableCell>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Editar Disciplina</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <Input defaultValue={disciplina.codigo} placeholder="Código da disciplina" />
-                                    <Input defaultValue={disciplina.nome} placeholder="Nome da disciplina" />
-                                    <Input defaultValue={disciplina.creditos.toString()} placeholder="Número de créditos" type="number" />
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline">Cancelar</Button>
-                                      <Button>Salvar</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                onClick={() => handleEdit(course)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -212,12 +298,12 @@ const Disciplinas = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja excluir a disciplina "{disciplina.nome}"? Esta ação pode ser desfeita na recuperação de disciplinas excluídas.
+                                      Tem certeza que deseja excluir a disciplina "{course.name}"? Esta ação pode ser desfeita na recuperação de disciplinas excluídas.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(disciplina.id)}>
+                                    <AlertDialogAction onClick={() => handleDelete(course.id)}>
                                       Excluir
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
@@ -226,7 +312,7 @@ const Disciplinas = () => {
                             </TableCell>
                           </TableRow>
                         ))}
-                        {currentDisciplinas.length === 0 && (
+                        {currentCourses.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Nenhuma disciplina encontrada" : "Nenhum registro para exibir"}
@@ -240,8 +326,8 @@ const Disciplinas = () => {
                   {/* DataTable Controls - Bottom */}
                   <div className="flex justify-between items-center pt-4">
                     <div className="text-sm text-muted-foreground">
-                      Mostrando {currentDisciplinas.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredDisciplinas.length)} de {filteredDisciplinas.length} registros
-                      {searchTerm && ` (filtrados de ${disciplinas.length} registros totais)`}
+                      Mostrando {currentCourses.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredCourses.length)} de {filteredCourses.length} registros
+                      {searchTerm && ` (filtrados de ${courses.length} registros totais)`}
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -298,6 +384,52 @@ const Disciplinas = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Edit Dialog */}
+                <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Disciplina</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                      <Input
+                        {...editForm.register('code', { required: true })}
+                        placeholder="Código da disciplina"
+                      />
+                      <Input
+                        {...editForm.register('name', { required: true })}
+                        placeholder="Nome da disciplina"
+                      />
+                      <Input
+                        {...editForm.register('credits', { required: true, valueAsNumber: true })}
+                        placeholder="Número de créditos"
+                        type="number"
+                        min="1"
+                        max="99999"
+                      />
+                      <Textarea
+                        {...editForm.register('description')}
+                        placeholder="Descrição (opcional)"
+                        rows={3}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setEditDialogOpen(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
           </div>

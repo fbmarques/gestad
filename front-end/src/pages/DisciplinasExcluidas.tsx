@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,51 +10,39 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface DisciplinaExcluida {
-  id: string;
-  codigo: string;
-  nome: string;
-  creditos: number;
-  dataExclusao: string;
-}
-
-const mockDisciplinasExcluidas: DisciplinaExcluida[] = [
-  { 
-    id: "1", 
-    codigo: "CC999", 
-    nome: "Disciplina Excluída A", 
-    creditos: 4,
-    dataExclusao: "07/09/2025 10:15:30"
-  },
-  { 
-    id: "2", 
-    codigo: "CC998", 
-    nome: "Disciplina Excluída B", 
-    creditos: 3,
-    dataExclusao: "06/09/2025 15:22:45"
-  },
-  { 
-    id: "3", 
-    codigo: "CC997", 
-    nome: "Disciplina Excluída C", 
-    creditos: 2,
-    dataExclusao: "05/09/2025 12:30:12"
-  }
-];
+import { getTrashedCourses, restoreCourse, type Course } from "@/lib/api";
+import { toast } from "sonner";
 
 const DisciplinasExcluidas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [disciplinas, setDisciplinas] = useState<DisciplinaExcluida[]>(mockDisciplinasExcluidas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: disciplinas = [], isLoading, error } = useQuery({
+    queryKey: ['trashedCourses'],
+    queryFn: getTrashedCourses,
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreCourse,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trashedCourses'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      toast.success('Disciplina restaurada com sucesso!');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erro ao restaurar disciplina';
+      toast.error(message);
+    },
+  });
 
   const filteredDisciplinas = disciplinas.filter(disciplina =>
-    disciplina.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    disciplina.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    disciplina.creditos.toString().includes(searchTerm)
+    disciplina.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    disciplina.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    disciplina.credits.toString().includes(searchTerm)
   );
 
   const totalPages = Math.ceil(filteredDisciplinas.length / itemsPerPage);
@@ -61,8 +50,8 @@ const DisciplinasExcluidas = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentDisciplinas = filteredDisciplinas.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setDisciplinas(prev => prev.filter(d => d.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -83,7 +72,7 @@ const DisciplinasExcluidas = () => {
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
         <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-        
+
         <div className="p-6 bg-background">
           <div className="max-w-7xl mx-auto space-y-6">
             <Card>
@@ -103,6 +92,15 @@ const DisciplinasExcluidas = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-muted-foreground">Carregando...</div>
+                  </div>
+                ) : error ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-destructive">Erro ao carregar dados</div>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   {/* DataTable Controls - Top */}
                   <div className="flex justify-between items-center">
@@ -122,7 +120,7 @@ const DisciplinasExcluidas = () => {
                       </Select>
                       <span className="text-sm text-muted-foreground">registros</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Buscar:</span>
                       <Input
@@ -133,7 +131,7 @@ const DisciplinasExcluidas = () => {
                       />
                     </div>
                   </div>
-                  
+
                   {/* Table */}
                   <div className="border rounded-lg">
                     <Table>
@@ -149,11 +147,11 @@ const DisciplinasExcluidas = () => {
                       <TableBody>
                         {currentDisciplinas.map((disciplina) => (
                           <TableRow key={disciplina.id}>
-                            <TableCell className="font-medium">{disciplina.codigo}</TableCell>
-                            <TableCell>{disciplina.nome}</TableCell>
-                            <TableCell>{disciplina.creditos}</TableCell>
+                            <TableCell className="font-medium">{disciplina.code}</TableCell>
+                            <TableCell>{disciplina.name}</TableCell>
+                            <TableCell>{disciplina.credits}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {disciplina.dataExclusao}
+                              {disciplina.deleted_at || '-'}
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -166,14 +164,17 @@ const DisciplinasExcluidas = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar recuperação</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja recuperar a disciplina &quot;{disciplina.nome}&quot;? 
+                                      Tem certeza que deseja recuperar a disciplina "{disciplina.name}"?
                                       Este registro será restaurado e voltará a aparecer na lista principal.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRecover(disciplina.id)}>
-                                      Recuperar
+                                    <AlertDialogAction
+                                      onClick={() => handleRecover(disciplina.id)}
+                                      disabled={restoreMutation.isPending}
+                                    >
+                                      {restoreMutation.isPending ? 'Restaurando...' : 'Recuperar'}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -191,14 +192,14 @@ const DisciplinasExcluidas = () => {
                       </TableBody>
                     </Table>
                   </div>
-                  
+
                   {/* Pagination */}
                   <div className="flex justify-between items-center pt-4">
                     <div className="text-sm text-muted-foreground">
                       Mostrando {currentDisciplinas.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredDisciplinas.length)} de {filteredDisciplinas.length} registros
                       {searchTerm && ` (filtrados de ${disciplinas.length} registros totais)`}
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -209,18 +210,18 @@ const DisciplinasExcluidas = () => {
                         <ChevronLeft className="w-4 h-4" />
                         Anterior
                       </Button>
-                      
+
                       <div className="flex items-center gap-1">
                         {Array.from({ length: totalPages }, (_, i) => i + 1)
                           .filter(page => {
-                            return page === 1 || 
-                                   page === totalPages || 
+                            return page === 1 ||
+                                   page === totalPages ||
                                    Math.abs(page - currentPage) <= 2;
                           })
                           .map((page, index, arr) => {
                             const prevPage = arr[index - 1];
                             const showEllipsis = prevPage && page - prevPage > 1;
-                            
+
                             return (
                               <div key={page} className="flex items-center gap-1">
                                 {showEllipsis && (
@@ -238,7 +239,7 @@ const DisciplinasExcluidas = () => {
                             );
                           })}
                       </div>
-                      
+
                       <Button
                         variant="outline"
                         size="sm"
@@ -251,6 +252,7 @@ const DisciplinasExcluidas = () => {
                     </div>
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
           </div>
