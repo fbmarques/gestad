@@ -5,6 +5,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Selecao from "./pages/Selecao";
 import Administrativo from "./pages/Administrativo";
+import LinhasPesquisa from "./pages/LinhasPesquisa";
+import LinhasPesquisaExcluidas from "./pages/LinhasPesquisaExcluidas";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +22,9 @@ function App() {
             <Route path="/administrativo" element={<Administrativo />} />
             <Route path="/docente" element={<div>Docente</div>} />
             <Route path="/discente" element={<div>Discente</div>} />
+            <Route path="/linhaspesquisa" element={<LinhasPesquisa />} />
+            <Route path="/linhapesquisa" element={<LinhasPesquisa />} />
+            <Route path="/linhaspesquisa-excluidas" element={<LinhasPesquisaExcluidas />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

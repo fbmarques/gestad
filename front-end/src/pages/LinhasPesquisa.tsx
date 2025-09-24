@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -10,37 +11,87 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface LinhaPesquisa {
-  id: string;
-  apelido: string;
-  nome: string;
-}
-
-const mockLinhasPesquisa: LinhaPesquisa[] = [
-  { id: "1", apelido: "IA", nome: "Inteligência Artificial" },
-  { id: "2", apelido: "SD", nome: "Sistemas Distribuídos" },
-  { id: "3", apelido: "ES", nome: "Engenharia de Software" },
-  { id: "4", apelido: "BD", nome: "Banco de Dados" },
-  { id: "5", apelido: "SI", nome: "Segurança da Informação" },
-  { id: "6", apelido: "CG", nome: "Computação Gráfica" },
-  { id: "7", apelido: "RC", nome: "Redes de Computadores" },
-  { id: "8", apelido: "IHC", nome: "Interação Humano-Computador" },
-  { id: "9", apelido: "CQ", nome: "Computação Quântica" },
-  { id: "10", apelido: "BI", nome: "Bioinformática" }
-];
+import {
+  getResearchLines,
+  createResearchLine,
+  updateResearchLine,
+  deleteResearchLine,
+  getDocentes,
+  ResearchLine,
+  ResearchLineFormData,
+  Docente
+} from "@/lib/api";
 
 const LinhasPesquisa = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [linhasPesquisa, setLinhasPesquisa] = useState<LinhaPesquisa[]>(mockLinhasPesquisa);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const navigate = useNavigate();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingLine, setEditingLine] = useState<ResearchLine | null>(null);
+  const [formData, setFormData] = useState<ResearchLineFormData>({
+    name: "",
+    alias: "",
+    description: "",
+    coordinator_id: undefined,
+  });
 
-  const filteredLinhasPesquisa = linhasPesquisa.filter(linha =>
-    linha.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    linha.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Queries
+  const { data: researchLines = [], isLoading, error } = useQuery({
+    queryKey: ['researchLines'],
+    queryFn: getResearchLines
+  });
+
+  const { data: docentes = [] } = useQuery({
+    queryKey: ['docentes'],
+    queryFn: getDocentes
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createResearchLine,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['researchLines'] });
+      setIsCreateDialogOpen(false);
+      resetForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ResearchLineFormData }) =>
+      updateResearchLine(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['researchLines'] });
+      setIsEditDialogOpen(false);
+      resetForm();
+      setEditingLine(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteResearchLine,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['researchLines'] });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      alias: "",
+      description: "",
+      coordinator_id: undefined,
+    });
+  };
+
+  // Filter and paginate research lines
+  const filteredLinhasPesquisa = researchLines.filter(linha =>
+    linha.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    linha.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Pagination calculations
@@ -49,8 +100,30 @@ const LinhasPesquisa = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentLinhasPesquisa = filteredLinhasPesquisa.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setLinhasPesquisa(prev => prev.filter(l => l.id !== id));
+  // Handlers
+  const handleCreate = () => {
+    createMutation.mutate(formData);
+  };
+
+  const handleEdit = (line: ResearchLine) => {
+    setEditingLine(line);
+    setFormData({
+      name: line.name,
+      alias: line.alias,
+      description: line.description || "",
+      coordinator_id: line.coordinator_id || undefined,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = () => {
+    if (editingLine) {
+      updateMutation.mutate({ id: editingLine.id, data: formData });
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -59,14 +132,21 @@ const LinhasPesquisa = () => {
 
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value));
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
   };
 
-  // Reset page when search changes
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
+
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
+
+  if (error) {
+    return <div>Erro ao carregar linhas de pesquisa</div>;
+  }
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -81,7 +161,7 @@ const LinhasPesquisa = () => {
                       <div className="flex justify-between items-center">
                         <CardTitle>Gerenciamento de Linhas de Pesquisa</CardTitle>
                         <div className="flex gap-2">
-                          <Dialog>
+                          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                             <DialogTrigger asChild>
                               <Button className="gap-2">
                                 <Plus className="w-4 h-4" />
@@ -93,11 +173,51 @@ const LinhasPesquisa = () => {
                                 <DialogTitle>Adicionar Nova Linha de Pesquisa</DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4">
-                                <Input placeholder="Apelido da linha de pesquisa" />
-                                <Input placeholder="Nome da linha de pesquisa" />
+                                <Input
+                                  placeholder="Apelido da linha de pesquisa"
+                                  value={formData.alias}
+                                  onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+                                />
+                                <Input
+                                  placeholder="Nome da linha de pesquisa"
+                                  value={formData.name}
+                                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                />
+                                <Input
+                                  placeholder="Descrição (opcional)"
+                                  value={formData.description}
+                                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                />
+                                <Select
+                                  value={formData.coordinator_id?.toString() || "none"}
+                                  onValueChange={(value) => setFormData({ ...formData, coordinator_id: value === "none" ? undefined : parseInt(value) })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione um coordenador (opcional)" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Sem coordenador</SelectItem>
+                                    {docentes.map((docente) => (
+                                      <SelectItem key={docente.id} value={docente.id.toString()}>
+                                        {docente.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <div className="flex justify-end gap-2">
-                                  <Button variant="outline">Cancelar</Button>
-                                  <Button>Salvar</Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => { setIsCreateDialogOpen(false); resetForm(); }}
+                                    disabled={createMutation.isPending}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button
+                                    onClick={handleCreate}
+                                    disabled={createMutation.isPending || !formData.name || !formData.alias}
+                                  >
+                                    {createMutation.isPending ? "Salvando..." : "Salvar"}
+                                  </Button>
                                 </div>
                               </div>
                             </DialogContent>
@@ -153,6 +273,7 @@ const LinhasPesquisa = () => {
                               <TableRow>
                                 <TableHead className="font-bold text-foreground">Apelido</TableHead>
                                 <TableHead className="font-bold text-foreground">Nome</TableHead>
+                                <TableHead className="font-bold text-foreground">Coordenador</TableHead>
                                 <TableHead className="w-12 font-bold text-foreground">Edt</TableHead>
                                 <TableHead className="w-12 font-bold text-foreground">Exc</TableHead>
                               </TableRow>
@@ -160,29 +281,18 @@ const LinhasPesquisa = () => {
                             <TableBody>
                               {currentLinhasPesquisa.map((linha) => (
                                 <TableRow key={linha.id}>
-                                  <TableCell className="font-medium">{linha.apelido}</TableCell>
-                                  <TableCell>{linha.nome}</TableCell>
+                                  <TableCell className="font-medium">{linha.alias}</TableCell>
+                                  <TableCell>{linha.name}</TableCell>
+                                  <TableCell>{linha.coordinator}</TableCell>
                                   <TableCell>
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>Editar Linha de Pesquisa</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4">
-                                          <Input defaultValue={linha.apelido} placeholder="Apelido da linha de pesquisa" />
-                                          <Input defaultValue={linha.nome} placeholder="Nome da linha de pesquisa" />
-                                          <div className="flex justify-end gap-2">
-                                            <Button variant="outline">Cancelar</Button>
-                                            <Button>Salvar</Button>
-                                          </div>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                      onClick={() => handleEdit(linha)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
                                   </TableCell>
                                   <TableCell>
                                     <AlertDialog>
@@ -195,7 +305,7 @@ const LinhasPesquisa = () => {
                                         <AlertDialogHeader>
                                           <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                                           <AlertDialogDescription>
-                                            Tem certeza que deseja excluir a linha de pesquisa "{linha.apelido}"? Esta ação não pode ser desfeita.
+                                            Tem certeza que deseja excluir a linha de pesquisa "{linha.alias}"? Esta ação não pode ser desfeita.
                                           </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -211,7 +321,7 @@ const LinhasPesquisa = () => {
                               ))}
                               {currentLinhasPesquisa.length === 0 && (
                                 <TableRow>
-                                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                     {searchTerm ? "Nenhuma linha de pesquisa encontrada" : "Nenhum registro para exibir"}
                                   </TableCell>
                                 </TableRow>
@@ -224,7 +334,7 @@ const LinhasPesquisa = () => {
                         <div className="flex justify-between items-center pt-4">
                           <div className="text-sm text-muted-foreground">
                             Mostrando {currentLinhasPesquisa.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredLinhasPesquisa.length)} de {filteredLinhasPesquisa.length} registros
-                            {searchTerm && ` (filtrados de ${linhasPesquisa.length} registros totais)`}
+                            {searchTerm && ` (filtrados de ${researchLines.length} registros totais)`}
                           </div>
                           
                           <div className="flex items-center gap-2">
@@ -286,6 +396,67 @@ const LinhasPesquisa = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Linha de Pesquisa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Apelido da linha de pesquisa"
+              value={formData.alias}
+              onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
+            />
+            <Input
+              placeholder="Nome da linha de pesquisa"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            />
+            <Input
+              placeholder="Descrição (opcional)"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+            <Select
+              value={formData.coordinator_id?.toString() || "none"}
+              onValueChange={(value) => setFormData({ ...formData, coordinator_id: value === "none" ? undefined : parseInt(value) })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um coordenador (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem coordenador</SelectItem>
+                {docentes.map((docente) => (
+                  <SelectItem key={docente.id} value={docente.id.toString()}>
+                    {docente.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  resetForm();
+                  setEditingLine(null);
+                }}
+                disabled={updateMutation.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleUpdate}
+                disabled={updateMutation.isPending || !formData.name || !formData.alias}
+              >
+                {updateMutation.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

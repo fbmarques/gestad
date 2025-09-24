@@ -264,6 +264,134 @@ php artisan boost:install
 - Create Feature Tests for all API endpoints (PHPUnit required)
 - Follow Laravel 12 streamlined structure (no `app/Http/Middleware/`, use `bootstrap/app.php`)
 
+## 🎯 **CRUD Development Lessons Learned**
+
+### Research Lines (Linhas de Pesquisa) Implementation Experience
+
+**Context**: Implementation of complete CRUD functionality for "Linhas de Pesquisa" with frontend integration revealed critical patterns and common pitfalls.
+
+#### **🚨 Critical Frontend-Backend Integration Patterns**
+
+**1. React Router Configuration**:
+- **MUST add routes in BOTH places**: `routes/web.php` AND `front-end/src/App.tsx`
+- **Support both singular and plural URLs** for user flexibility
+- Example pattern:
+```php
+// routes/web.php
+Route::get('/linhapesquisa', function() { return view('app'); })->middleware('auth.roles:1,2');
+Route::get('/linhaspesquisa', function() { return view('app'); })->middleware('auth.roles:1,2');
+```
+
+**2. Mock Data Replacement Strategy**:
+- **NEVER assume frontend uses real data** - always check for mock arrays
+- **Replace mock data systematically**:
+  - Remove mock data arrays/interfaces
+  - Add React Query integration (`useQuery`, `useMutation`)
+  - Update data mapping (mock fields → real API fields)
+  - Add proper loading/error states
+
+**3. shadcn/ui Select Component Gotchas**:
+- **NEVER use empty string `""` as Select value** - causes console errors
+- **Use meaningful default like `"none"`** for optional selections
+- **Example**:
+```tsx
+// ❌ WRONG - causes errors
+<SelectItem value="">Selecione...</SelectItem>
+
+// ✅ CORRECT - works properly
+<SelectItem value="none">Selecione...</SelectItem>
+```
+
+**4. Date Formatting Anti-Pattern**:
+- **Check if backend already formats dates** before frontend processing
+- **Avoid double formatting** - causes "Invalid Date" errors
+- **Pattern**: If backend returns formatted string, display directly:
+```tsx
+// ❌ WRONG - double formatting
+{linha.deleted_at ? new Date(linha.deleted_at).toLocaleString('pt-BR') : '-'}
+
+// ✅ CORRECT - use backend formatted date
+{linha.deleted_at || '-'}
+```
+
+#### **🏗️ Backend API Development Pattern**
+
+**Controller Structure** (proven working pattern):
+```php
+public function trashed(): JsonResponse
+{
+    // 1. Authorization check first
+    $user = auth()->user();
+    if (! $user || ! $user->roles()->whereIn('role_id', [1, 2])->exists()) {
+        return response()->json(['error' => 'Acesso negado.'], 403);
+    }
+
+    // 2. Query with relationships
+    $trashedLines = ResearchLine::onlyTrashed()
+        ->with('coordinator:id,name')
+        ->orderBy('deleted_at', 'desc')
+        ->get()
+        ->map(function ($line) {
+            return [
+                'id' => $line->id,
+                'name' => $line->name,
+                'alias' => $line->alias,
+                'description' => $line->description,
+                'coordinator' => $line->coordinator ? $line->coordinator->name : 'Sem coordenador',
+                'coordinator_id' => $line->coordinator_id,
+                'deleted_at' => $line->deleted_at->format('d/m/Y H:i:s'), // Format here!
+            ];
+        });
+
+    return response()->json($trashedLines);
+}
+```
+
+#### **📱 Frontend Integration Checklist**
+
+**Before Implementing Any CRUD Page**:
+1. ✅ Check if page uses mock data (look for hardcoded arrays)
+2. ✅ Verify API endpoints exist and work (test with Postman/browser)
+3. ✅ Add React Router routes in `App.tsx`
+4. ✅ Add Laravel routes in `web.php` with proper role middleware
+5. ✅ Update `lib/api.ts` with new API functions and TypeScript interfaces
+6. ✅ Replace mock data with React Query hooks
+7. ✅ Map mock field names to real API field names
+8. ✅ Handle Select components properly (no empty string values)
+9. ✅ Test date formatting (check if backend already formats)
+10. ✅ Always run `npm run build` before final testing
+
+#### **🔄 Systematic Debugging Approach**
+
+**When Pages Show Wrong Data**:
+1. **Check database directly** - verify real data exists
+2. **Test API endpoints** - use browser network tab or Postman
+3. **Inspect frontend network requests** - verify API calls are made
+4. **Compare mock vs real field mapping** - align field names
+5. **Check React Query cache** - may need invalidation
+
+#### **⚠️ Common Pitfalls to Avoid**
+
+1. **Blank pages**: Missing React Router routes in `App.tsx`
+2. **Mock data persisting**: Forgetting to replace mock arrays with API calls
+3. **Select component errors**: Using empty string `""` as value
+4. **Date display issues**: Double-formatting already formatted dates
+5. **Form submissions failing**: Missing CSRF token calls
+6. **Authorization errors**: Wrong role middleware configuration
+7. **Build not reflecting changes**: Forgetting `npm run build` step
+
+#### **🎯 Success Pattern Summary**
+
+**Proven CRUD Implementation Flow**:
+1. Backend: Model + Migration + Controller + FormRequests + Routes + Tests
+2. Frontend API: Add functions to `lib/api.ts` with proper TypeScript interfaces
+3. Frontend Routes: Add both Laravel (`web.php`) and React (`App.tsx`) routes
+4. Frontend Integration: Replace mock data with React Query, fix field mappings
+5. Testing: Build + test on Laravel server + run PHPUnit tests
+6. Debug: Use systematic approach above if issues arise
+
+This pattern was successfully validated with Research Lines CRUD and should be replicated for all future CRUD implementations.
+
 ===
 
 <laravel-boost-guidelines>

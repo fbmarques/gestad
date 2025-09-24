@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,46 +10,39 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getTrashedResearchLines, restoreResearchLine, type ResearchLine } from "@/lib/api";
+import { toast } from "sonner";
 
-interface LinhaPesquisaExcluida {
-  id: string;
-  apelido: string;
-  nome: string;
-  dataExclusao: string;
-}
-
-const mockLinhasPesquisaExcluidas: LinhaPesquisaExcluida[] = [
-  { 
-    id: "1", 
-    apelido: "ML", 
-    nome: "Machine Learning Excluída", 
-    dataExclusao: "07/09/2025 09:30:15"
-  },
-  { 
-    id: "2", 
-    apelido: "VR", 
-    nome: "Realidade Virtual Excluída", 
-    dataExclusao: "06/09/2025 16:45:22"
-  },
-  { 
-    id: "3", 
-    apelido: "IOT", 
-    nome: "Internet das Coisas Excluída", 
-    dataExclusao: "05/09/2025 13:20:08"
-  }
-];
 
 const LinhasPesquisaExcluidas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [linhasPesquisa, setLinhasPesquisa] = useState<LinhaPesquisaExcluida[]>(mockLinhasPesquisaExcluidas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: linhasPesquisa = [], isLoading, error } = useQuery({
+    queryKey: ['trashedResearchLines'],
+    queryFn: getTrashedResearchLines,
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreResearchLine,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trashedResearchLines'] });
+      queryClient.invalidateQueries({ queryKey: ['researchLines'] });
+      toast.success('Linha de pesquisa restaurada com sucesso!');
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Erro ao restaurar linha de pesquisa';
+      toast.error(message);
+    },
+  });
 
   const filteredLinhasPesquisa = linhasPesquisa.filter(linha =>
-    linha.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    linha.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    linha.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    linha.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredLinhasPesquisa.length / itemsPerPage);
@@ -56,8 +50,8 @@ const LinhasPesquisaExcluidas = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentLinhasPesquisa = filteredLinhasPesquisa.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setLinhasPesquisa(prev => prev.filter(l => l.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -98,6 +92,15 @@ const LinhasPesquisaExcluidas = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-muted-foreground">Carregando...</div>
+                  </div>
+                ) : error ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-destructive">Erro ao carregar dados</div>
+                  </div>
+                ) : (
                 <div className="space-y-4">
                   {/* DataTable Controls - Top */}
                   <div className="flex justify-between items-center">
@@ -136,6 +139,7 @@ const LinhasPesquisaExcluidas = () => {
                         <TableRow>
                           <TableHead className="font-bold text-foreground">Apelido</TableHead>
                           <TableHead className="font-bold text-foreground">Nome</TableHead>
+                          <TableHead className="font-bold text-foreground">Coordenador</TableHead>
                           <TableHead className="font-bold text-foreground">Data Exclusão</TableHead>
                           <TableHead className="w-12 font-bold text-foreground">Rec</TableHead>
                         </TableRow>
@@ -143,10 +147,11 @@ const LinhasPesquisaExcluidas = () => {
                       <TableBody>
                         {currentLinhasPesquisa.map((linha) => (
                           <TableRow key={linha.id}>
-                            <TableCell className="font-medium">{linha.apelido}</TableCell>
-                            <TableCell>{linha.nome}</TableCell>
+                            <TableCell className="font-medium">{linha.alias}</TableCell>
+                            <TableCell>{linha.name}</TableCell>
+                            <TableCell>{linha.coordinator || 'Sem coordenador'}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {linha.dataExclusao}
+                              {linha.deleted_at || '-'}
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -159,14 +164,17 @@ const LinhasPesquisaExcluidas = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar recuperação</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja recuperar a linha de pesquisa &quot;{linha.nome}&quot;? 
+                                      Tem certeza que deseja recuperar a linha de pesquisa &quot;{linha.name}&quot;?
                                       Este registro será restaurado e voltará a aparecer na lista principal.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRecover(linha.id)}>
-                                      Recuperar
+                                    <AlertDialogAction
+                                      onClick={() => handleRecover(linha.id)}
+                                      disabled={restoreMutation.isPending}
+                                    >
+                                      {restoreMutation.isPending ? 'Restaurando...' : 'Recuperar'}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -176,7 +184,7 @@ const LinhasPesquisaExcluidas = () => {
                         ))}
                         {currentLinhasPesquisa.length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Nenhuma linha de pesquisa encontrada" : "Nenhum registro excluído"}
                             </TableCell>
                           </TableRow>
@@ -244,6 +252,7 @@ const LinhasPesquisaExcluidas = () => {
                     </div>
                   </div>
                 </div>
+                )}
               </CardContent>
             </Card>
           </div>
