@@ -13,6 +13,8 @@ import Agencias from "./pages/Agencias";
 import AgenciasExcluidas from "./pages/AgenciasExcluidas";
 import Revistas from "./pages/Revistas";
 import RevistasExcluidas from "./pages/RevistasExcluidas";
+import Eventos from "./pages/Eventos";
+import EventosExcluidos from "./pages/EventosExcluidos";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +42,9 @@ function App() {
             <Route path="/revistas" element={<Revistas />} />
             <Route path="/revista" element={<Revistas />} />
             <Route path="/revistas-excluidas" element={<RevistasExcluidas />} />
+            <Route path="/eventos" element={<Eventos />} />
+            <Route path="/evento" element={<Eventos />} />
+            <Route path="/eventos-excluidos" element={<EventosExcluidos />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>

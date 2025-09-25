@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -10,45 +11,60 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Event, getEvents, createEvent, updateEvent, deleteEvent, EventFormData } from "@/lib/api";
 
-interface Evento {
-  id: string;
-  nome: string;
-  alias: string;
-  tipo: string;
-  natureza: string;
-}
-
-const mockEventos: Evento[] = [
-  { id: "1", nome: "International Conference on Software Engineering", alias: "ICSE", tipo: "Conferência", natureza: "Internacional" },
-  { id: "2", nome: "Simpósio Brasileiro de Engenharia de Software", alias: "SBES", tipo: "Simpósio", natureza: "Nacional" },
-  { id: "3", nome: "ACM SIGMOD International Conference", alias: "SIGMOD", tipo: "Conferência", natureza: "Internacional" },
-  { id: "4", nome: "Workshop de Teses e Dissertações", alias: "WTD", tipo: "Workshop", natureza: "Nacional" },
-  { id: "5", nome: "International Conference on Machine Learning", alias: "ICML", tipo: "Conferência", natureza: "Internacional" },
-  { id: "6", nome: "Congresso da Sociedade Brasileira de Computação", alias: "CSBC", tipo: "Congresso", natureza: "Nacional" },
-  { id: "7", nome: "IEEE International Conference on Computer Vision", alias: "ICCV", tipo: "Conferência", natureza: "Internacional" },
-  { id: "8", nome: "Simpósio Brasileiro de Redes de Computadores", alias: "SBRC", tipo: "Simpósio", natureza: "Nacional" },
-  { id: "9", nome: "Conference on Neural Information Processing Systems", alias: "NeurIPS", tipo: "Conferência", natureza: "Internacional" },
-  { id: "10", nome: "Workshop de Informática na Escola", alias: "WIE", tipo: "Workshop", natureza: "Nacional" },
-  { id: "11", nome: "International World Wide Web Conference", alias: "WWW", tipo: "Conferência", natureza: "Internacional" },
-  { id: "12", nome: "Simpósio Brasileiro de Banco de Dados", alias: "SBBD", tipo: "Simpósio", natureza: "Nacional" },
-  { id: "13", nome: "ACM Conference on Human Factors in Computing", alias: "CHI", tipo: "Conferência", natureza: "Internacional" },
-  { id: "14", nome: "Workshop de Computação Aplicada", alias: "WCA", tipo: "Workshop", natureza: "Nacional" },
-  { id: "15", nome: "International Conference on Robotics and Automation", alias: "ICRA", tipo: "Conferência", natureza: "Internacional" },
-  { id: "16", nome: "Simpósio Brasileiro de Segurança da Informação", alias: "SBSeg", tipo: "Simpósio", natureza: "Nacional" },
-  { id: "17", nome: "European Conference on Computer Vision", alias: "ECCV", tipo: "Conferência", natureza: "Internacional" },
-  { id: "18", nome: "Workshop de Tecnologia da Informação", alias: "WTI", tipo: "Workshop", natureza: "Nacional" },
-  { id: "19", nome: "International Conference on Data Mining", alias: "ICDM", tipo: "Conferência", natureza: "Internacional" },
-  { id: "20", nome: "Congresso Nacional de Matemática Aplicada", alias: "CNMAC", tipo: "Congresso", natureza: "Nacional" }
-];
 
 const Eventos = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [eventos, setEventos] = useState<Evento[]>(mockEventos);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [formData, setFormData] = useState<EventFormData>({
+    nome: "",
+    alias: "",
+    tipo: "",
+    natureza: ""
+  });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch events data
+  const { data: eventos = [], isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: getEvents,
+  });
+
+  // Create event mutation
+  const createMutation = useMutation({
+    mutationFn: createEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      setIsCreateDialogOpen(false);
+      resetForm();
+    },
+  });
+
+  // Update event mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: EventFormData }) => updateEvent(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      setIsEditDialogOpen(false);
+      setEditingEvent(null);
+      resetForm();
+    },
+  });
+
+  // Delete event mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
 
   const filteredEventos = eventos.filter(evento =>
     evento.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,8 +79,40 @@ const Eventos = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentEventos = filteredEventos.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setEventos(prev => prev.filter(e => e.id !== id));
+  const resetForm = () => {
+    setFormData({
+      nome: "",
+      alias: "",
+      tipo: "",
+      natureza: ""
+    });
+  };
+
+  const handleCreate = () => {
+    if (formData.nome && formData.alias && formData.tipo && formData.natureza) {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const handleEdit = (evento: Event) => {
+    setEditingEvent(evento);
+    setFormData({
+      nome: evento.nome,
+      alias: evento.alias,
+      tipo: evento.tipo,
+      natureza: evento.natureza
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = () => {
+    if (editingEvent && formData.nome && formData.alias && formData.tipo && formData.natureza) {
+      updateMutation.mutate({ id: editingEvent.id, data: formData });
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -82,6 +130,25 @@ const Eventos = () => {
     setCurrentPage(1);
   };
 
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando eventos...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
@@ -94,7 +161,7 @@ const Eventos = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>Gerenciamento de Eventos</CardTitle>
                   <div className="flex gap-2">
-                    <Dialog>
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                       <DialogTrigger asChild>
                         <Button className="gap-2">
                           <Plus className="w-4 h-4" />
@@ -106,9 +173,17 @@ const Eventos = () => {
                           <DialogTitle>Adicionar Novo Evento</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <Input placeholder="Nome do evento" />
-                          <Input placeholder="Alias/Sigla" />
-                          <Select>
+                          <Input
+                            placeholder="Nome do evento"
+                            value={formData.nome}
+                            onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                          />
+                          <Input
+                            placeholder="Alias/Sigla"
+                            value={formData.alias}
+                            onChange={(e) => setFormData(prev => ({ ...prev, alias: e.target.value }))}
+                          />
+                          <Select value={formData.tipo} onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value }))}>
                             <SelectTrigger>
                               <SelectValue placeholder="Tipo do evento" />
                             </SelectTrigger>
@@ -119,7 +194,7 @@ const Eventos = () => {
                               <SelectItem value="Congresso">Congresso</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Select>
+                          <Select value={formData.natureza} onValueChange={(value) => setFormData(prev => ({ ...prev, natureza: value }))}>
                             <SelectTrigger>
                               <SelectValue placeholder="Natureza do evento" />
                             </SelectTrigger>
@@ -129,8 +204,10 @@ const Eventos = () => {
                             </SelectContent>
                           </Select>
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline">Cancelar</Button>
-                            <Button>Salvar</Button>
+                            <Button variant="outline" onClick={() => { setIsCreateDialogOpen(false); resetForm(); }}>Cancelar</Button>
+                            <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                              {createMutation.isPending ? 'Salvando...' : 'Salvar'}
+                            </Button>
                           </div>
                         </div>
                       </DialogContent>
@@ -200,46 +277,14 @@ const Eventos = () => {
                           <TableCell>{evento.tipo}</TableCell>
                           <TableCell>{evento.natureza}</TableCell>
                           <TableCell>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Editar Evento</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <Input defaultValue={evento.nome} placeholder="Nome do evento" />
-                                  <Input defaultValue={evento.alias} placeholder="Alias/Sigla" />
-                                  <Select defaultValue={evento.tipo}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Tipo do evento" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Conferência">Conferência</SelectItem>
-                                      <SelectItem value="Simpósio">Simpósio</SelectItem>
-                                      <SelectItem value="Workshop">Workshop</SelectItem>
-                                      <SelectItem value="Congresso">Congresso</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <Select defaultValue={evento.natureza}>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Natureza do evento" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Nacional">Nacional</SelectItem>
-                                      <SelectItem value="Internacional">Internacional</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline">Cancelar</Button>
-                                    <Button>Salvar</Button>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                              onClick={() => handleEdit(evento)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <AlertDialog>
@@ -257,8 +302,8 @@ const Eventos = () => {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(evento.id)}>
-                                    Excluir
+                                  <AlertDialogAction onClick={() => handleDelete(evento.id)} disabled={deleteMutation.isPending}>
+                                    {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -342,6 +387,53 @@ const Eventos = () => {
             </Card>
           </div>
         </div>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Evento</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Nome do evento"
+                value={formData.nome}
+                onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+              />
+              <Input
+                placeholder="Alias/Sigla"
+                value={formData.alias}
+                onChange={(e) => setFormData(prev => ({ ...prev, alias: e.target.value }))}
+              />
+              <Select value={formData.tipo} onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo do evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Conferência">Conferência</SelectItem>
+                  <SelectItem value="Simpósio">Simpósio</SelectItem>
+                  <SelectItem value="Workshop">Workshop</SelectItem>
+                  <SelectItem value="Congresso">Congresso</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={formData.natureza} onValueChange={(value) => setFormData(prev => ({ ...prev, natureza: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Natureza do evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nacional">Nacional</SelectItem>
+                  <SelectItem value="Internacional">Internacional</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); setEditingEvent(null); resetForm(); }}>Cancelar</Button>
+                <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

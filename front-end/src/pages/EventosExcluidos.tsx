@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,50 +10,31 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getTrashedEvents, restoreEvent } from "@/lib/api";
 
-interface EventoExcluido {
-  id: string;
-  nome: string;
-  alias: string;
-  tipo: string;
-  natureza: string;
-  dataExclusao: string;
-}
-
-const mockEventosExcluidos: EventoExcluido[] = [
-  { 
-    id: "1", 
-    nome: "Conference on Deleted Software Engineering", 
-    alias: "CDSE", 
-    tipo: "Conferência", 
-    natureza: "Internacional",
-    dataExclusao: "07/09/2025 13:15:30"
-  },
-  { 
-    id: "2", 
-    nome: "Simpósio Brasileiro Excluído", 
-    alias: "SBE", 
-    tipo: "Simpósio", 
-    natureza: "Nacional",
-    dataExclusao: "06/09/2025 17:22:45"
-  },
-  { 
-    id: "3", 
-    nome: "Workshop of Deleted Technologies", 
-    alias: "WDT", 
-    tipo: "Workshop", 
-    natureza: "Internacional",
-    dataExclusao: "05/09/2025 11:30:12"
-  }
-];
 
 const EventosExcluidos = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [eventos, setEventos] = useState<EventoExcluido[]>(mockEventosExcluidos);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch trashed events data
+  const { data: eventos = [], isLoading } = useQuery({
+    queryKey: ['trashedEvents'],
+    queryFn: getTrashedEvents,
+  });
+
+  // Restore event mutation
+  const restoreMutation = useMutation({
+    mutationFn: restoreEvent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trashedEvents'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+    },
+  });
 
   const filteredEventos = eventos.filter(evento =>
     evento.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,8 +48,8 @@ const EventosExcluidos = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentEventos = filteredEventos.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setEventos(prev => prev.filter(e => e.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -83,6 +65,25 @@ const EventosExcluidos = () => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
+
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando eventos excluídos...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -160,7 +161,7 @@ const EventosExcluidos = () => {
                             <TableCell>{evento.tipo}</TableCell>
                             <TableCell>{evento.natureza}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {evento.dataExclusao}
+                              {evento.dataExclusao || '-'}
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -179,8 +180,8 @@ const EventosExcluidos = () => {
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRecover(evento.id)}>
-                                      Recuperar
+                                    <AlertDialogAction onClick={() => handleRecover(evento.id)} disabled={restoreMutation.isPending}>
+                                      {restoreMutation.isPending ? 'Recuperando...' : 'Recuperar'}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>

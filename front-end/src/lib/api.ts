@@ -285,4 +285,56 @@ export const restoreJournal = async (id: number): Promise<void> => {
   await api.post(`/api/journals/${id}/restore`);
 };
 
+// Events types
+export interface Event {
+  id: number;
+  nome: string;
+  alias: string;
+  tipo: string;
+  natureza: string;
+  dataExclusao?: string;
+}
+
+export interface EventFormData {
+  nome: string;
+  alias: string;
+  tipo: string;
+  natureza: string;
+}
+
+// Events API functions
+export const getEvents = async (): Promise<Event[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Event[]>('/api/events');
+  return response.data;
+};
+
+export const getTrashedEvents = async (): Promise<Event[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Event[]>('/api/events-trashed');
+  return response.data;
+};
+
+export const createEvent = async (data: EventFormData): Promise<Event> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post('/api/events', data);
+  return response.data;
+};
+
+export const updateEvent = async (id: number, data: EventFormData): Promise<Event> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/events/${id}`, data);
+  return response.data;
+};
+
+export const deleteEvent = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/events/${id}`);
+};
+
+export const restoreEvent = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/events/${id}/restore`);
+};
+
 export default api;
