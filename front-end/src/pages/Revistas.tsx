@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -10,52 +11,59 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface Revista {
-  id: string;
-  nome: string;
-  instituicao: string;
-  quali: string;
-  issn: string;
-  tipo: string;
-}
-
-const mockRevistas: Revista[] = [
-  { id: "1", nome: "Journal of Computer Science", instituicao: "IEEE", quali: "A1", issn: "1234-5678", tipo: "Internacional" },
-  { id: "2", nome: "Revista Brasileira de Informática", instituicao: "SBC", quali: "B1", issn: "2345-6789", tipo: "Nacional" },
-  { id: "3", nome: "ACM Computing Surveys", instituicao: "ACM", quali: "A1", issn: "3456-7890", tipo: "Internacional" },
-  { id: "4", nome: "Journal of Software Engineering", instituicao: "Elsevier", quali: "A2", issn: "4567-8901", tipo: "Internacional" },
-  { id: "5", nome: "Revista de Engenharia de Software", instituicao: "UFRJ", quali: "B2", issn: "5678-9012", tipo: "Nacional" },
-  { id: "6", nome: "Data Mining and Knowledge Discovery", instituicao: "Springer", quali: "A1", issn: "6789-0123", tipo: "Internacional" },
-  { id: "7", nome: "Journal of Artificial Intelligence", instituicao: "MIT Press", quali: "A1", issn: "7890-1234", tipo: "Internacional" },
-  { id: "8", nome: "Revista Brasileira de Redes", instituicao: "USP", quali: "B1", issn: "8901-2345", tipo: "Nacional" },
-  { id: "9", nome: "Computer Networks", instituicao: "Elsevier", quali: "A2", issn: "9012-3456", tipo: "Internacional" },
-  { id: "10", nome: "Revista de Computação Gráfica", instituicao: "UNICAMP", quali: "B2", issn: "0123-4567", tipo: "Nacional" },
-  { id: "11", nome: "IEEE Transactions on Software Engineering", instituicao: "IEEE", quali: "A1", issn: "1357-2468", tipo: "Internacional" },
-  { id: "12", nome: "Information Systems", instituicao: "Pergamon", quali: "A2", issn: "2468-1357", tipo: "Internacional" },
-  { id: "13", nome: "Journal of Database Management", instituicao: "IGI Global", quali: "B1", issn: "3579-0246", tipo: "Internacional" },
-  { id: "14", nome: "Revista Brasileira de Sistemas", instituicao: "UFMG", quali: "B1", issn: "4680-1357", tipo: "Nacional" },
-  { id: "15", nome: "Expert Systems with Applications", instituicao: "Elsevier", quali: "A2", issn: "5791-2468", tipo: "Internacional" },
-  { id: "16", nome: "Revista de Inteligência Artificial", instituicao: "PUC-Rio", quali: "B2", issn: "6802-3579", tipo: "Nacional" },
-  { id: "17", nome: "Pattern Recognition", instituicao: "Pergamon", quali: "A1", issn: "7913-4680", tipo: "Internacional" },
-  { id: "18", nome: "Computers & Graphics", instituicao: "Pergamon", quali: "A2", issn: "8024-5791", tipo: "Internacional" },
-  { id: "19", nome: "Revista de Segurança da Informação", instituicao: "UFRGS", quali: "B1", issn: "9135-6802", tipo: "Nacional" },
-  { id: "20", nome: "International Journal of Human-Computer Studies", instituicao: "Academic Press", quali: "A2", issn: "0246-7913", tipo: "Internacional" }
-];
+import { getJournals, createJournal, updateJournal, deleteJournal, type Journal, type JournalFormData } from "@/lib/api";
 
 const Revistas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [revistas, setRevistas] = useState<Revista[]>(mockRevistas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingJournal, setEditingJournal] = useState<Journal | null>(null);
+  const [formData, setFormData] = useState({ nome: "", instituicao: "", quali: "", issn: "", tipo: "none" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch journals from API
+  const { data: revistas = [], isLoading, error } = useQuery({
+    queryKey: ['journals'],
+    queryFn: getJournals,
+  });
+
+  // Create journal mutation
+  const createMutation = useMutation({
+    mutationFn: createJournal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+      setIsDialogOpen(false);
+      setFormData({ nome: "", instituicao: "", quali: "", issn: "", tipo: "none" });
+    },
+  });
+
+  // Update journal mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: JournalFormData }) => updateJournal(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+      setIsDialogOpen(false);
+      setEditingJournal(null);
+      setFormData({ nome: "", instituicao: "", quali: "", issn: "", tipo: "none" });
+    },
+  });
+
+  // Delete journal mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteJournal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    },
+  });
 
   const filteredRevistas = revistas.filter(revista =>
     revista.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.instituicao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.quali.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.issn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (revista.instituicao && revista.instituicao.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (revista.quali && revista.quali.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (revista.issn && revista.issn.toLowerCase().includes(searchTerm.toLowerCase())) ||
     revista.tipo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -65,8 +73,44 @@ const Revistas = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentRevistas = filteredRevistas.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setRevistas(prev => prev.filter(r => r.id !== id));
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleSubmit = () => {
+    if (!formData.nome || formData.tipo === "none") return;
+
+    const journalData: JournalFormData = {
+      nome: formData.nome,
+      instituicao: formData.instituicao || undefined,
+      quali: formData.quali || undefined,
+      issn: formData.issn || undefined,
+      tipo: formData.tipo,
+    };
+
+    if (editingJournal) {
+      updateMutation.mutate({ id: editingJournal.id, data: journalData });
+    } else {
+      createMutation.mutate(journalData);
+    }
+  };
+
+  const handleEdit = (journal: Journal) => {
+    setEditingJournal(journal);
+    setFormData({
+      nome: journal.nome,
+      instituicao: journal.instituicao || "",
+      quali: journal.quali || "",
+      issn: journal.issn || "",
+      tipo: journal.tipo,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingJournal(null);
+    setFormData({ nome: "", instituicao: "", quali: "", issn: "", tipo: "none" });
   };
 
   const handlePageChange = (page: number) => {
@@ -84,6 +128,46 @@ const Revistas = () => {
     setCurrentPage(1);
   };
 
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando revistas...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center text-red-500">
+                    Erro ao carregar revistas: {error instanceof Error ? error.message : 'Erro desconhecido'}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
@@ -96,34 +180,58 @@ const Revistas = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>Gerenciamento de Revistas</CardTitle>
                   <div className="flex gap-2">
-                    <Dialog>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button className="gap-2">
+                        <Button className="gap-2" onClick={() => setIsDialogOpen(true)}>
                           <Plus className="w-4 h-4" />
                           Nova Revista
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Adicionar Nova Revista</DialogTitle>
+                          <DialogTitle>
+                            {editingJournal ? 'Editar Revista' : 'Adicionar Nova Revista'}
+                          </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <Input placeholder="Nome da revista" />
-                          <Input placeholder="Instituição" />
-                          <Input placeholder="Quali (A1, A2, B1, B2, etc.)" />
-                          <Input placeholder="ISSN" />
-                          <Select>
+                          <Input
+                            placeholder="Nome da revista"
+                            value={formData.nome}
+                            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                          />
+                          <Input
+                            placeholder="Instituição"
+                            value={formData.instituicao}
+                            onChange={(e) => setFormData({ ...formData, instituicao: e.target.value })}
+                          />
+                          <Input
+                            placeholder="Quali (A1, A2, B1, B2, etc.)"
+                            value={formData.quali}
+                            onChange={(e) => setFormData({ ...formData, quali: e.target.value })}
+                          />
+                          <Input
+                            placeholder="ISSN"
+                            value={formData.issn}
+                            onChange={(e) => setFormData({ ...formData, issn: e.target.value })}
+                          />
+                          <Select value={formData.tipo} onValueChange={(value) => setFormData({ ...formData, tipo: value })}>
                             <SelectTrigger>
                               <SelectValue placeholder="Tipo da revista" />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="none">Selecione o tipo</SelectItem>
                               <SelectItem value="Nacional">Nacional</SelectItem>
                               <SelectItem value="Internacional">Internacional</SelectItem>
                             </SelectContent>
                           </Select>
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline">Cancelar</Button>
-                            <Button>Salvar</Button>
+                            <Button variant="outline" onClick={handleCloseDialog}>Cancelar</Button>
+                            <Button
+                              onClick={handleSubmit}
+                              disabled={!formData.nome || formData.tipo === "none" || createMutation.isPending || updateMutation.isPending}
+                            >
+                              {createMutation.isPending || updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+                            </Button>
                           </div>
                         </div>
                       </DialogContent>
@@ -195,37 +303,14 @@ const Revistas = () => {
                             <TableCell>{revista.issn}</TableCell>
                             <TableCell>{revista.tipo}</TableCell>
                             <TableCell>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Editar Revista</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <Input defaultValue={revista.nome} placeholder="Nome da revista" />
-                                    <Input defaultValue={revista.instituicao} placeholder="Instituição" />
-                                    <Input defaultValue={revista.quali} placeholder="Quali (A1, A2, B1, B2, etc.)" />
-                                    <Input defaultValue={revista.issn} placeholder="ISSN" />
-                                    <Select defaultValue={revista.tipo}>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Tipo da revista" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Nacional">Nacional</SelectItem>
-                                        <SelectItem value="Internacional">Internacional</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline">Cancelar</Button>
-                                      <Button>Salvar</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                onClick={() => handleEdit(revista)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
                             </TableCell>
                             <TableCell>
                               <AlertDialog>

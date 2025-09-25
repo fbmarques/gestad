@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,60 +10,36 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface RevistaExcluida {
-  id: string;
-  nome: string;
-  instituicao: string;
-  quali: string;
-  issn: string;
-  tipo: string;
-  dataExclusao: string;
-}
-
-const mockRevistasExcluidas: RevistaExcluida[] = [
-  { 
-    id: "1", 
-    nome: "Journal of Deleted Research", 
-    instituicao: "Deleted Press", 
-    quali: "A1", 
-    issn: "9999-9999", 
-    tipo: "Internacional",
-    dataExclusao: "07/09/2025 12:30:15"
-  },
-  { 
-    id: "2", 
-    nome: "Revista Brasileira Excluída", 
-    instituicao: "Universidade Excluída", 
-    quali: "B2", 
-    issn: "8888-8888", 
-    tipo: "Nacional",
-    dataExclusao: "06/09/2025 16:45:22"
-  },
-  { 
-    id: "3", 
-    nome: "International Deleted Journal", 
-    instituicao: "Deleted Institute", 
-    quali: "A2", 
-    issn: "7777-7777", 
-    tipo: "Internacional",
-    dataExclusao: "05/09/2025 10:20:08"
-  }
-];
+import { getTrashedJournals, restoreJournal, type Journal } from "@/lib/api";
 
 const RevistasExcluidas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [revistas, setRevistas] = useState<RevistaExcluida[]>(mockRevistasExcluidas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch trashed journals from API
+  const { data: revistas = [], isLoading, error } = useQuery({
+    queryKey: ['journals-trashed'],
+    queryFn: getTrashedJournals,
+  });
+
+  // Restore journal mutation
+  const restoreMutation = useMutation({
+    mutationFn: restoreJournal,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals-trashed'] });
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    },
+  });
 
   const filteredRevistas = revistas.filter(revista =>
     revista.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.instituicao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.quali.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    revista.issn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (revista.instituicao && revista.instituicao.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (revista.quali && revista.quali.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (revista.issn && revista.issn.toLowerCase().includes(searchTerm.toLowerCase())) ||
     revista.tipo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -71,8 +48,8 @@ const RevistasExcluidas = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentRevistas = filteredRevistas.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setRevistas(prev => prev.filter(r => r.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -88,6 +65,46 @@ const RevistasExcluidas = () => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
+
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando revistas excluídas...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center text-red-500">
+                    Erro ao carregar revistas excluídas: {error instanceof Error ? error.message : 'Erro desconhecido'}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={isDarkMode ? "dark" : ""}>

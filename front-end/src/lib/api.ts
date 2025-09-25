@@ -230,4 +230,59 @@ export const restoreAgency = async (id: number): Promise<void> => {
   await api.post(`/api/agencies/${id}/restore`);
 };
 
+// Journals types
+export interface Journal {
+  id: number;
+  nome: string;
+  instituicao?: string;
+  quali?: string;
+  issn?: string;
+  tipo: string;
+  dataExclusao?: string;
+}
+
+export interface JournalFormData {
+  nome: string;
+  instituicao?: string;
+  quali?: string;
+  issn?: string;
+  tipo: string;
+  description?: string;
+}
+
+// Journals API functions
+export const getJournals = async (): Promise<Journal[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Journal[]>('/api/journals');
+  return response.data;
+};
+
+export const getTrashedJournals = async (): Promise<Journal[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Journal[]>('/api/journals-trashed');
+  return response.data;
+};
+
+export const createJournal = async (data: JournalFormData): Promise<Journal> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post('/api/journals', data);
+  return response.data;
+};
+
+export const updateJournal = async (id: number, data: JournalFormData): Promise<Journal> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/journals/${id}`, data);
+  return response.data;
+};
+
+export const deleteJournal = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/journals/${id}`);
+};
+
+export const restoreJournal = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/journals/${id}/restore`);
+};
+
 export default api;
