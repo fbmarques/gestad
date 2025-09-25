@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -10,40 +11,55 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface Agencia {
-  id: string;
-  apelido: string;
-  nome: string;
-}
-
-const mockAgencias: Agencia[] = [
-  { id: "1", apelido: "CNPq", nome: "Conselho Nacional de Desenvolvimento Científico e Tecnológico" },
-  { id: "2", apelido: "CAPES", nome: "Coordenação de Aperfeiçoamento de Pessoal de Nível Superior" },
-  { id: "3", apelido: "FAPESP", nome: "Fundação de Amparo à Pesquisa do Estado de São Paulo" },
-  { id: "4", apelido: "FAPERJ", nome: "Fundação Carlos Chagas Filho de Amparo à Pesquisa do Estado do Rio de Janeiro" },
-  { id: "5", apelido: "FAPEMIG", nome: "Fundação de Amparo à Pesquisa do Estado de Minas Gerais" },
-  { id: "6", apelido: "FAPESB", nome: "Fundação de Amparo à Pesquisa do Estado da Bahia" },
-  { id: "7", apelido: "FAPEAM", nome: "Fundação de Amparo à Pesquisa do Estado do Amazonas" },
-  { id: "8", apelido: "FAPESC", nome: "Fundação de Amparo à Pesquisa e Inovação do Estado de Santa Catarina" },
-  { id: "9", apelido: "FAPEG", nome: "Fundação de Amparo à Pesquisa do Estado de Goiás" },
-  { id: "10", apelido: "FACEPE", nome: "Fundação de Amparo à Ciência e Tecnologia do Estado de Pernambuco" },
-  { id: "11", apelido: "FUNCAP", nome: "Fundação Cearense de Apoio ao Desenvolvimento Científico e Tecnológico" },
-  { id: "12", apelido: "FAPEAL", nome: "Fundação de Amparo à Pesquisa do Estado de Alagoas" },
-  { id: "13", apelido: "FAPES", nome: "Fundação de Amparo à Pesquisa e Inovação do Espírito Santo" },
-  { id: "14", apelido: "FAPDF", nome: "Fundação de Apoio à Pesquisa do Distrito Federal" },
-  { id: "15", apelido: "FAPEPI", nome: "Fundação de Amparo à Pesquisa do Estado do Piauí" }
-];
+import { getAgencies, createAgency, updateAgency, deleteAgency, type Agency, type AgencyFormData } from "@/lib/api";
 
 const Agencias = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [agencias, setAgencias] = useState<Agencia[]>(mockAgencias);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAgency, setEditingAgency] = useState<Agency | null>(null);
+  const [formData, setFormData] = useState({ name: "", alias: "", description: "" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const filteredAgencias = agencias.filter(agencia =>
+  // Fetch agencies from API
+  const { data: agencies = [], isLoading, error } = useQuery({
+    queryKey: ['agencies'],
+    queryFn: getAgencies,
+  });
+
+  // Create agency mutation
+  const createMutation = useMutation({
+    mutationFn: createAgency,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencies'] });
+      setIsDialogOpen(false);
+      setFormData({ name: "", alias: "", description: "" });
+    },
+  });
+
+  // Update agency mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AgencyFormData }) => updateAgency(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencies'] });
+      setIsDialogOpen(false);
+      setEditingAgency(null);
+      setFormData({ name: "", alias: "", description: "" });
+    },
+  });
+
+  // Delete agency mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteAgency,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agencies'] });
+    },
+  });
+
+  const filteredAgencias = agencies.filter(agencia =>
     agencia.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agencia.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -53,8 +69,32 @@ const Agencias = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentAgencias = filteredAgencias.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setAgencias(prev => prev.filter(a => a.id !== id));
+  const handleCreate = () => {
+    createMutation.mutate(formData);
+  };
+
+  const handleUpdate = (id: number) => {
+    updateMutation.mutate({ id, data: formData });
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const openCreateDialog = () => {
+    setEditingAgency(null);
+    setFormData({ name: "", alias: "", description: "" });
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (agency: Agency) => {
+    setEditingAgency(agency);
+    setFormData({
+      name: agency.nome,
+      alias: agency.apelido,
+      description: agency.description || ""
+    });
+    setIsDialogOpen(true);
   };
 
   const handlePageChange = (page: number) => {
@@ -71,6 +111,44 @@ const Agencias = () => {
     setCurrentPage(1);
   };
 
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando agências...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center text-red-500">Erro ao carregar agências</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
@@ -83,23 +161,54 @@ const Agencias = () => {
                 <div className="flex justify-between items-center">
                   <CardTitle>Gerenciamento de Agências de Fomento</CardTitle>
                   <div className="flex gap-2">
-                    <Dialog>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
-                        <Button className="gap-2">
+                        <Button className="gap-2" onClick={openCreateDialog}>
                           <Plus className="w-4 h-4" />
                           Nova Agência
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Adicionar Nova Agência de Fomento</DialogTitle>
+                          <DialogTitle>
+                            {editingAgency ? "Editar Agência" : "Adicionar Nova Agência de Fomento"}
+                          </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
-                          <Input placeholder="Apelido da agência" />
-                          <Input placeholder="Nome completo da agência" />
+                          <Input
+                            placeholder="Apelido da agência"
+                            value={formData.alias}
+                            onChange={(e) => setFormData(prev => ({ ...prev, alias: e.target.value }))}
+                          />
+                          <Input
+                            placeholder="Nome completo da agência"
+                            value={formData.name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                          <Input
+                            placeholder="Descrição (opcional)"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                          />
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline">Cancelar</Button>
-                            <Button>Salvar</Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setIsDialogOpen(false)}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (editingAgency) {
+                                  handleUpdate(editingAgency.id);
+                                } else {
+                                  handleCreate();
+                                }
+                              }}
+                              disabled={!formData.name || !formData.alias}
+                            >
+                              Salvar
+                            </Button>
                           </div>
                         </div>
                       </DialogContent>
@@ -165,26 +274,14 @@ const Agencias = () => {
                             <TableCell className="font-medium">{agencia.apelido}</TableCell>
                             <TableCell>{agencia.nome}</TableCell>
                             <TableCell>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Editar Agência</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <Input defaultValue={agencia.apelido} placeholder="Apelido/Sigla" />
-                                    <Input defaultValue={agencia.nome} placeholder="Nome completo da agência" />
-                                    <div className="flex justify-end gap-2">
-                                      <Button variant="outline">Cancelar</Button>
-                                      <Button>Salvar</Button>
-                                    </div>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                onClick={() => openEditDialog(agencia)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
@@ -226,7 +323,7 @@ const Agencias = () => {
                   <div className="flex justify-between items-center pt-4">
                     <div className="text-sm text-muted-foreground">
                       Mostrando {currentAgencias.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredAgencias.length)} de {filteredAgencias.length} registros
-                      {searchTerm && ` (filtrados de ${agencias.length} registros totais)`}
+                      {searchTerm && ` (filtrados de ${agencies.length} registros totais)`}
                     </div>
                     
                     <div className="flex items-center gap-2">

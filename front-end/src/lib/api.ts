@@ -178,4 +178,56 @@ export const restoreCourse = async (id: number): Promise<void> => {
   await api.post(`/api/courses/${id}/restore`);
 };
 
+// Agencies types
+export interface Agency {
+  id: number;
+  apelido: string;
+  nome: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  dataExclusao?: string;
+}
+
+export interface AgencyFormData {
+  name: string;
+  alias: string;
+  description?: string;
+}
+
+// Agencies API functions
+export const getAgencies = async (): Promise<Agency[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Agency[]>('/api/agencies');
+  return response.data;
+};
+
+export const getTrashedAgencies = async (): Promise<Agency[]> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.get<Agency[]>('/api/agencies-trashed');
+  return response.data;
+};
+
+export const createAgency = async (data: AgencyFormData): Promise<Agency> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post('/api/agencies', data);
+  return response.data;
+};
+
+export const updateAgency = async (id: number, data: AgencyFormData): Promise<Agency> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/agencies/${id}`, data);
+  return response.data;
+};
+
+export const deleteAgency = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/agencies/${id}`);
+};
+
+export const restoreAgency = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/agencies/${id}/restore`);
+};
+
 export default api;

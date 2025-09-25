@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,44 +10,32 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface AgenciaExcluida {
-  id: string;
-  apelido: string;
-  nome: string;
-  dataExclusao: string;
-}
-
-const mockAgenciasExcluidas: AgenciaExcluida[] = [
-  { 
-    id: "1", 
-    apelido: "FAPEXX", 
-    nome: "Fundação de Amparo à Pesquisa Excluída XX", 
-    dataExclusao: "07/09/2025 11:20:45"
-  },
-  { 
-    id: "2", 
-    apelido: "CNEX", 
-    nome: "Conselho Nacional Excluído", 
-    dataExclusao: "06/09/2025 14:15:30"
-  },
-  { 
-    id: "3", 
-    apelido: "FINEX", 
-    nome: "Financiadora Excluída de Estudos", 
-    dataExclusao: "05/09/2025 09:45:18"
-  }
-];
+import { getTrashedAgencies, restoreAgency, type Agency } from "@/lib/api";
 
 const AgenciasExcluidas = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [agencias, setAgencias] = useState<AgenciaExcluida[]>(mockAgenciasExcluidas);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const filteredAgencias = agencias.filter(agencia =>
+  // Fetch trashed agencies from API
+  const { data: agencies = [], isLoading, error } = useQuery({
+    queryKey: ['trashedAgencies'],
+    queryFn: getTrashedAgencies,
+  });
+
+  // Restore agency mutation
+  const restoreMutation = useMutation({
+    mutationFn: restoreAgency,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trashedAgencies'] });
+      queryClient.invalidateQueries({ queryKey: ['agencies'] });
+    },
+  });
+
+  const filteredAgencias = agencies.filter(agencia =>
     agencia.apelido.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agencia.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -56,8 +45,8 @@ const AgenciasExcluidas = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentAgencias = filteredAgencias.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setAgencias(prev => prev.filter(a => a.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -73,6 +62,44 @@ const AgenciasExcluidas = () => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
+
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center">Carregando agências excluídas...</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="text-center text-red-500">Erro ao carregar agências excluídas</div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -189,7 +216,7 @@ const AgenciasExcluidas = () => {
                   <div className="flex justify-between items-center pt-4">
                     <div className="text-sm text-muted-foreground">
                       Mostrando {currentAgencias.length > 0 ? startIndex + 1 : 0} a {Math.min(endIndex, filteredAgencias.length)} de {filteredAgencias.length} registros
-                      {searchTerm && ` (filtrados de ${agencias.length} registros totais)`}
+                      {searchTerm && ` (filtrados de ${agencies.length} registros totais)`}
                     </div>
                     
                     <div className="flex items-center gap-2">

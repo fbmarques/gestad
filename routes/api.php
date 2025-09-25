@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ProfileController;
@@ -27,4 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('courses', CourseController::class);
     Route::get('/courses-trashed', [CourseController::class, 'trashed']);
     Route::post('/courses/{id}/restore', [CourseController::class, 'restore']);
+
+    // Agencies routes (accessible by admin and docente)
+    Route::apiResource('agencies', AgencyController::class);
+    Route::get('/agencies-trashed', [AgencyController::class, 'trashed']);
+    Route::post('/agencies/{id}/restore', [AgencyController::class, 'restore']);
 });

@@ -9,6 +9,8 @@ import LinhasPesquisa from "./pages/LinhasPesquisa";
 import LinhasPesquisaExcluidas from "./pages/LinhasPesquisaExcluidas";
 import Disciplinas from "./pages/Disciplinas";
 import DisciplinasExcluidas from "./pages/DisciplinasExcluidas";
+import Agencias from "./pages/Agencias";
+import AgenciasExcluidas from "./pages/AgenciasExcluidas";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,9 @@ function App() {
             <Route path="/disciplinas" element={<Disciplinas />} />
             <Route path="/disciplina" element={<Disciplinas />} />
             <Route path="/disciplinas-excluidas" element={<DisciplinasExcluidas />} />
+            <Route path="/agencias" element={<Agencias />} />
+            <Route path="/agencia" element={<Agencias />} />
+            <Route path="/agencias-excluidas" element={<AgenciasExcluidas />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
