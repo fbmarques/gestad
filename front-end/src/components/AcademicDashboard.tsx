@@ -29,17 +29,17 @@ const stats: StatCard[] = [
   {
     title: "Discentes Ativos",
     value: "247",
-    description: "Mestrado e Doutorado",
+    description: "",
     icon: Users,
-    trend: "+12",
+    trend: "",
     trendUp: true
   },
   {
     title: "Disciplinas Ofertadas",
     value: "18",
-    description: "Semestre atual",
+    description: "",
     icon: BookOpen,
-    trend: "+3",
+    trend: "",
     trendUp: true
   },
   {
@@ -53,7 +53,7 @@ const stats: StatCard[] = [
   {
     title: "Publicações",
     value: "156",
-    description: "Ano letivo atual",
+    description: "Últimos 12 meses",
     icon: FileText,
     trend: "+24",
     trendUp: true
@@ -63,7 +63,7 @@ const stats: StatCard[] = [
 // Dados para gráficos
 const academicDistribution = [
   { name: "Mestrado", value: 148, fill: "hsl(var(--primary))" },
-  { name: "Doutorado", value: 99, fill: "hsl(var(--secondary))" }
+  { name: "Doutorado", value: 99, fill: "hsl(var(--warning))" }
 ];
 
 const publicationsQualis = [
