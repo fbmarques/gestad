@@ -10,63 +10,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-interface DiscenteExcluido {
-  id: string;
-  nome: string;
-  email: string;
-  orientador: string;
-  coorientador: string;
-  statusMestrado: "Em curso" | "Concluído" | "Não iniciado";
-  statusDoutorado: "Em curso" | "Concluído" | "Não iniciado";
-  dataExclusao: string;
-}
-
-const mockDiscentesExcluidos: DiscenteExcluido[] = [
-  { 
-    id: "1", 
-    nome: "João Silva Excluído", 
-    email: "joao.excluido@email.com", 
-    orientador: "Dr. Carlos Pereira", 
-    coorientador: "Dra. Maria Fernanda", 
-    statusMestrado: "Concluído", 
-    statusDoutorado: "Em curso",
-    dataExclusao: "07/09/2025 07:00:15"
-  },
-  { 
-    id: "2", 
-    nome: "Maria Santos Excluída", 
-    email: "maria.excluida@email.com", 
-    orientador: "Dr. Pedro Lima", 
-    coorientador: "Dr. Roberto Alves", 
-    statusMestrado: "Em curso", 
-    statusDoutorado: "Não iniciado",
-    dataExclusao: "06/09/2025 15:30:22"
-  },
-  { 
-    id: "3", 
-    nome: "Pedro Costa Excluído", 
-    email: "pedro.excluido@email.com", 
-    orientador: "Dra. Ana Carolina", 
-    coorientador: "", 
-    statusMestrado: "Concluído", 
-    statusDoutorado: "Concluído",
-    dataExclusao: "05/09/2025 10:45:08"
-  }
-];
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getTrashedDiscentes, restoreDiscente, DiscenteExcluido } from "@/lib/api";
 
 const DiscentesExcluidos = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [discentes, setDiscentes] = useState<DiscenteExcluido[]>(mockDiscentesExcluidos);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch trashed discentes
+  const { data: discentes = [], isLoading, error } = useQuery({
+    queryKey: ['trashedDiscentes'],
+    queryFn: getTrashedDiscentes,
+  });
+
+  // Restore mutation
+  const restoreMutation = useMutation({
+    mutationFn: restoreDiscente,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trashedDiscentes'] });
+      queryClient.invalidateQueries({ queryKey: ['discentes'] });
+    },
+  });
 
   const filteredDiscentes = discentes.filter(discente =>
     discente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     discente.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    discente.orientador.toLowerCase().includes(searchTerm.toLowerCase())
+    discente.orientador.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (discente.co_orientador && discente.co_orientador.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalPages = Math.ceil(filteredDiscentes.length / itemsPerPage);
@@ -74,8 +48,8 @@ const DiscentesExcluidos = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentDiscentes = filteredDiscentes.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setDiscentes(prev => prev.filter(d => d.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -95,15 +69,51 @@ const DiscentesExcluidos = () => {
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "Em curso":
+      case "active":
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "Concluído":
+      case "completed":
         return "bg-green-100 text-green-800 border-green-200";
       case "Não iniciado":
+      case "not_started":
+      case "inactive":
         return "bg-gray-100 text-gray-800 border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center py-8">Carregando...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={isDarkMode ? "dark" : ""}>
+        <div className="min-h-screen bg-background">
+          <AdminTopNav isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+          <div className="p-6 bg-background">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center py-8 text-red-600">
+                Erro ao carregar discentes excluídos: {error instanceof Error ? error.message : 'Erro desconhecido'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -181,22 +191,27 @@ const DiscentesExcluidos = () => {
                             <TableCell>{discente.email}</TableCell>
                             <TableCell>{discente.orientador}</TableCell>
                             <TableCell>
-                              <Badge className={`${getStatusBadgeVariant(discente.statusMestrado)} px-2 py-1 text-xs font-medium border`}>
-                                {discente.statusMestrado}
+                              <Badge className={`${getStatusBadgeVariant(discente.status_mestrado)} px-2 py-1 text-xs font-medium border`}>
+                                {discente.status_mestrado}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge className={`${getStatusBadgeVariant(discente.statusDoutorado)} px-2 py-1 text-xs font-medium border`}>
-                                {discente.statusDoutorado}
+                              <Badge className={`${getStatusBadgeVariant(discente.status_doutorado)} px-2 py-1 text-xs font-medium border`}>
+                                {discente.status_doutorado}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {discente.dataExclusao}
+                              {discente.data_exclusao}
                             </TableCell>
                             <TableCell>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="icon" className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
+                                    disabled={restoreMutation.isPending}
+                                  >
                                     <RotateCcw className="w-4 h-4" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -204,14 +219,17 @@ const DiscentesExcluidos = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Confirmar recuperação</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Tem certeza que deseja recuperar o discente &quot;{discente.nome}&quot;? 
+                                      Tem certeza que deseja recuperar o discente &quot;{discente.nome}&quot;?
                                       Este registro será restaurado e voltará a aparecer na lista principal.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRecover(discente.id)}>
-                                      Recuperar
+                                    <AlertDialogAction
+                                      onClick={() => handleRecover(discente.id)}
+                                      disabled={restoreMutation.isPending}
+                                    >
+                                      {restoreMutation.isPending ? 'Recuperando...' : 'Recuperar'}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>

@@ -401,4 +401,90 @@ export const restoreEvent = async (id: number): Promise<void> => {
   await api.post(`/api/events/${id}/restore`);
 };
 
+// Discentes types
+export interface Discente {
+  id: number;
+  nome: string;
+  email: string;
+  orientador: string;
+  orientador_id?: number;
+  co_orientador?: string;
+  co_orientador_id?: number;
+  nivel_pos_graduacao: 'mestrado' | 'doutorado';
+  mestrado_status: string;
+  doutorado_status: string;
+}
+
+export interface DiscenteExcluido {
+  id: number;
+  nome: string;
+  email: string;
+  orientador: string;
+  co_orientador?: string;
+  status_mestrado: string;
+  status_doutorado: string;
+  data_exclusao: string;
+}
+
+export interface DiscenteFormData {
+  nome: string;
+  email: string;
+  orientador_id: number;
+  co_orientador_id?: number;
+  nivel_pos_graduacao: 'mestrado' | 'doutorado';
+}
+
+export interface DocenteDropdown {
+  id: number;
+  name: string;
+}
+
+// Discentes API functions
+export const getDiscentes = async (): Promise<Discente[]> => {
+  const response = await api.get<Discente[]>('/api/discentes');
+  return response.data;
+};
+
+export const getTrashedDiscentes = async (): Promise<DiscenteExcluido[]> => {
+  const response = await api.get<DiscenteExcluido[]>('/api/discentes-trashed');
+  return response.data;
+};
+
+export const createDiscente = async (data: DiscenteFormData): Promise<any> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post('/api/discentes', data);
+  return response.data;
+};
+
+export const updateDiscente = async (id: number, data: DiscenteFormData): Promise<any> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/discentes/${id}`, data);
+  return response.data;
+};
+
+export const deleteDiscente = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/discentes/${id}`);
+};
+
+export const restoreDiscente = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/discentes/${id}/restore`);
+};
+
+export const getDocentesDropdown = async (): Promise<DocenteDropdown[]> => {
+  const response = await api.get<DocenteDropdown[]>('/api/docentes-dropdown');
+  return response.data;
+};
+
+export const getDiscenteAvailableLevels = async (id: number): Promise<{ available_levels: string[], current_bonds: any }> => {
+  const response = await api.get(`/api/discentes/${id}/available-levels`);
+  return response.data;
+};
+
+export const resetDiscentePassword = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/discentes/${id}/reset-password`);
+};
+
 export default api;

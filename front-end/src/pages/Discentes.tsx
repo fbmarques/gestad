@@ -12,88 +12,91 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Check, ChevronsUpDown, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getDiscentes, getDocentesDropdown, createDiscente, updateDiscente, deleteDiscente, getDiscenteAvailableLevels, resetDiscentePassword, Discente, DocenteDropdown, DiscenteFormData } from "@/lib/api";
 
-interface Discente {
-  id: string;
-  nome: string;
-  email: string;
-  orientador: string;
-  coOrientador?: string;
-  nivelPosGraduacao: string;
-  mestradoStatus: string;
-  doutoradoStatus: string;
-}
-
-interface Docente {
-  id: string;
-  nome: string;
-}
-
-const mockDocentes: Docente[] = [
-  { id: "1", nome: "Dr. Maria Santos" },
-  { id: "2", nome: "Dr. Pedro Lima" },
-  { id: "3", nome: "Dra. Julia Fernandes" },
-  { id: "4", nome: "Dr. Roberto Alves" },
-  { id: "5", nome: "Dra. Ana Carolina" },
-  { id: "6", nome: "Dr. Carlos Eduardo" },
-  { id: "7", nome: "Dra. Mariana Costa" },
-  { id: "8", nome: "Dr. Paulo Ricardo" },
-  { id: "9", nome: "Dra. Sandra Melo" },
-  { id: "10", nome: "Dr. Fernando Silva" },
-  { id: "11", nome: "Dra. Patrícia Rocha" },
-  { id: "12", nome: "Dr. Marcos Vieira" },
-  { id: "13", nome: "Dra. Carla Nascimento" },
-  { id: "14", nome: "Dr. André Campos" },
-  { id: "15", nome: "Dra. Mônica Teixeira" },
-  { id: "16", nome: "Dr. Sérgio Monteiro" },
-  { id: "17", nome: "Dra. Beatriz Cunha" },
-  { id: "18", nome: "Dr. Rodrigo Nunes" },
-  { id: "19", nome: "Dra. Renata Lopes" },
-  { id: "20", nome: "Dr. Fábio Correia" }
-];
-
-const mockDiscentes: Discente[] = [
-  { id: "1", nome: "João Silva", email: "joao.silva@email.com", orientador: "Dr. Maria Santos", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "2", nome: "Ana Costa", email: "ana.costa@email.com", orientador: "Dr. Pedro Lima", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "3", nome: "Carlos Oliveira", email: "carlos.oliveira@email.com", orientador: "Dra. Julia Fernandes", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "concluido" },
-  { id: "4", nome: "Marina Rodrigues", email: "marina.rodrigues@email.com", orientador: "Dr. Roberto Alves", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "5", nome: "Felipe Santos", email: "felipe.santos@email.com", orientador: "Dra. Ana Carolina", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "6", nome: "Lucia Fernandes", email: "lucia.fernandes@email.com", orientador: "Dr. Carlos Eduardo", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "7", nome: "Rafael Pereira", email: "rafael.pereira@email.com", orientador: "Dra. Mariana Costa", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "concluido" },
-  { id: "8", nome: "Camila Souza", email: "camila.souza@email.com", orientador: "Dr. Paulo Ricardo", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "9", nome: "Bruno Lima", email: "bruno.lima@email.com", orientador: "Dra. Sandra Melo", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "10", nome: "Isabela Martins", email: "isabela.martins@email.com", orientador: "Dr. Fernando Silva", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "11", nome: "Thiago Barbosa", email: "thiago.barbosa@email.com", orientador: "Dra. Patrícia Rocha", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "12", nome: "Natália Gomes", email: "natalia.gomes@email.com", orientador: "Dr. Marcos Vieira", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "13", nome: "Gustavo Almeida", email: "gustavo.almeida@email.com", orientador: "Dra. Carla Nascimento", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "concluido" },
-  { id: "14", nome: "Larissa Castro", email: "larissa.castro@email.com", orientador: "Dr. André Campos", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "15", nome: "Diego Ribeiro", email: "diego.ribeiro@email.com", orientador: "Dra. Mônica Teixeira", nivelPosGraduacao: "mestrado", mestradoStatus: "concluido", doutoradoStatus: "nao-iniciado" },
-  { id: "16", nome: "Amanda Cardoso", email: "amanda.cardoso@email.com", orientador: "Dr. Sérgio Monteiro", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "17", nome: "Leandro Moreira", email: "leandro.moreira@email.com", orientador: "Dra. Beatriz Cunha", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" },
-  { id: "18", nome: "Priscila Dias", email: "priscila.dias@email.com", orientador: "Dr. Rodrigo Nunes", nivelPosGraduacao: "mestrado", mestradoStatus: "em-curso", doutoradoStatus: "nao-iniciado" },
-  { id: "19", nome: "Mateus Freitas", email: "mateus.freitas@email.com", orientador: "Dra. Renata Lopes", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "concluido" },
-  { id: "20", nome: "Vanessa Torres", email: "vanessa.torres@email.com", orientador: "Dr. Fábio Correia", nivelPosGraduacao: "doutorado", mestradoStatus: "concluido", doutoradoStatus: "em-curso" }
-];
 
 const Discentes = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [discentes, setDiscentes] = useState<Discente[]>(mockDiscentes);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [newDiscenteOpen, setNewDiscenteOpen] = useState(false);
   const [editDiscenteOpen, setEditDiscenteOpen] = useState(false);
+  const [editingDiscente, setEditingDiscente] = useState<Discente | null>(null);
   const [selectedOrientador, setSelectedOrientador] = useState("");
   const [selectedCoOrientador, setSelectedCoOrientador] = useState("");
   const [orientadorOpen, setOrientadorOpen] = useState(false);
   const [coOrientadorOpen, setCoOrientadorOpen] = useState(false);
   const [selectedNivelPosGraduacao, setSelectedNivelPosGraduacao] = useState("");
-  const [selectedMestradoStatus, setSelectedMestradoStatus] = useState("");
-  const [selectedDoutoradoStatus, setSelectedDoutoradoStatus] = useState("nao-iniciado");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [availableLevels, setAvailableLevels] = useState<string[]>([]);
+
+  const queryClient = useQueryClient();
+
+  // Fetch discentes
+  const { data: discentes = [], isLoading } = useQuery({
+    queryKey: ['discentes'],
+    queryFn: getDiscentes,
+  });
+
+  // Fetch docentes for dropdown
+  const { data: docentes = [] } = useQuery({
+    queryKey: ['docentes-dropdown'],
+    queryFn: getDocentesDropdown,
+  });
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: createDiscente,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['discentes']);
+      handleCancelNewDiscente();
+    },
+    onError: (error: any) => {
+      console.error('Create discente error:', error);
+      const errorMessage = error?.response?.data?.message || 'Erro ao criar discente';
+      const errors = error?.response?.data?.errors;
+
+      if (errors) {
+        const errorList = Object.values(errors).flat().join('\n');
+        alert(`Erro de validação:\n${errorList}`);
+      } else {
+        alert(errorMessage);
+      }
+    },
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: DiscenteFormData }) =>
+      updateDiscente(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['discentes']);
+      handleCancelEditDiscente();
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: deleteDiscente,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['discentes']);
+    },
+  });
+
+  // Reset password mutation
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetDiscentePassword,
+    onSuccess: () => {
+      // Optional: show success message
+    },
+  });
 
   const filteredDiscentes = discentes.filter(discente =>
     discente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -107,8 +110,8 @@ const Discentes = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentDiscentes = filteredDiscentes.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setDiscentes(prev => prev.filter(d => d.id !== id));
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -131,29 +134,88 @@ const Discentes = () => {
     setSelectedOrientador("");
     setSelectedCoOrientador("");
     setSelectedNivelPosGraduacao("");
-    setSelectedMestradoStatus("");
-    setSelectedDoutoradoStatus("nao-iniciado");
+    setNome("");
+    setEmail("");
   };
 
   const handleCancelEditDiscente = () => {
     setEditDiscenteOpen(false);
+    setEditingDiscente(null);
     setSelectedOrientador("");
     setSelectedCoOrientador("");
     setSelectedNivelPosGraduacao("");
-    setSelectedMestradoStatus("");
-    setSelectedDoutoradoStatus("nao-iniciado");
+    setNome("");
+    setEmail("");
   };
 
-  const handleNivelChange = (nivel: string) => {
-    setSelectedNivelPosGraduacao(nivel);
-    // Definir status padrão baseado no nível selecionado
-    if (nivel === "mestrado") {
-      setSelectedMestradoStatus("em-curso");
-      setSelectedDoutoradoStatus("nao-iniciado");
-    } else if (nivel === "doutorado") {
-      setSelectedMestradoStatus("concluido");
-      setSelectedDoutoradoStatus("em-curso");
+  const handleCreateSubmit = () => {
+    if (!nome || !email || !selectedOrientador || !selectedNivelPosGraduacao) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
     }
+
+    const orientadorId = docentes.find(d => d.name === selectedOrientador)?.id;
+    const coOrientadorId = selectedCoOrientador ? docentes.find(d => d.name === selectedCoOrientador)?.id : undefined;
+
+    if (!orientadorId) {
+      alert(`Orientador não encontrado. Valor selecionado: "${selectedOrientador}"`);
+      return;
+    }
+
+    const data: DiscenteFormData = {
+      nome,
+      email,
+      orientador_id: orientadorId,
+      co_orientador_id: coOrientadorId,
+      nivel_pos_graduacao: selectedNivelPosGraduacao as 'mestrado' | 'doutorado',
+    };
+
+    createMutation.mutate(data);
+  };
+
+  const handleEditSubmit = () => {
+    if (!editingDiscente || !nome || !email || !selectedOrientador || !selectedNivelPosGraduacao) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const orientadorId = docentes.find(d => d.name === selectedOrientador)?.id;
+    const coOrientadorId = selectedCoOrientador ? docentes.find(d => d.name === selectedCoOrientador)?.id : undefined;
+
+    if (!orientadorId) {
+      alert('Orientador não encontrado.');
+      return;
+    }
+
+    const data: DiscenteFormData = {
+      nome,
+      email,
+      orientador_id: orientadorId,
+      co_orientador_id: coOrientadorId,
+      nivel_pos_graduacao: selectedNivelPosGraduacao as 'mestrado' | 'doutorado',
+    };
+
+    updateMutation.mutate({ id: editingDiscente.id, data });
+  };
+
+  const handleEditDiscente = async (discente: Discente) => {
+    setEditingDiscente(discente);
+    setNome(discente.nome);
+    setEmail(discente.email);
+    setSelectedOrientador(discente.orientador);
+    setSelectedCoOrientador(discente.co_orientador || "");
+    setSelectedNivelPosGraduacao(discente.nivel_pos_graduacao);
+
+    // Fetch available levels for this discente
+    try {
+      const levelData = await getDiscenteAvailableLevels(discente.id);
+      setAvailableLevels(levelData.available_levels);
+    } catch (error) {
+      console.error('Error fetching available levels:', error);
+      setAvailableLevels([]);
+    }
+
+    setEditDiscenteOpen(true);
   };
 
   return (
@@ -187,11 +249,24 @@ const Discentes = () => {
                                   <div className="space-y-3">
                                     <div>
                                       <Label htmlFor="nome" className="text-sm font-medium">Nome completo *</Label>
-                                      <Input id="nome" placeholder="Nome completo" className="mt-1" />
+                                      <Input
+                                        id="nome"
+                                        placeholder="Nome completo"
+                                        className="mt-1"
+                                        value={nome}
+                                        onChange={(e) => setNome(e.target.value)}
+                                      />
                                     </div>
                                     <div>
                                       <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
-                                      <Input id="email" placeholder="Email" type="email" className="mt-1" />
+                                      <Input
+                                        id="email"
+                                        placeholder="Email"
+                                        type="email"
+                                        className="mt-1"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                      />
                                     </div>
                                   </div>
                                 </div>
@@ -201,7 +276,7 @@ const Discentes = () => {
                                   <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Nível Acadêmico</h3>
                                   <div>
                                     <Label className="text-sm font-medium">Nível de Pós-Graduação *</Label>
-                                    <RadioGroup value={selectedNivelPosGraduacao} onValueChange={handleNivelChange} className="mt-3 space-y-2">
+                                    <RadioGroup value={selectedNivelPosGraduacao} onValueChange={setSelectedNivelPosGraduacao} className="mt-3 space-y-2">
                                       <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
                                         <RadioGroupItem value="mestrado" id="mestrado" />
                                         <Label htmlFor="mestrado" className="cursor-pointer">Mestrado</Label>
@@ -229,7 +304,7 @@ const Discentes = () => {
                                             className="w-full justify-between mt-1"
                                           >
                                             {selectedOrientador
-                                              ? mockDocentes.find((docente) => docente.nome === selectedOrientador)?.nome
+                                              ? docentes.find((docente) => docente.name === selectedOrientador)?.name
                                               : "Selecione um orientador..."}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                           </Button>
@@ -240,10 +315,10 @@ const Discentes = () => {
                                             <CommandList>
                                               <CommandEmpty>Nenhum orientador encontrado.</CommandEmpty>
                                               <CommandGroup>
-                                                {mockDocentes.map((docente) => (
+                                                {docentes.map((docente) => (
                                                   <CommandItem
                                                     key={docente.id}
-                                                    value={docente.nome}
+                                                    value={docente.name}
                                                     onSelect={(currentValue) => {
                                                       setSelectedOrientador(currentValue === selectedOrientador ? "" : currentValue);
                                                       setOrientadorOpen(false);
@@ -252,10 +327,10 @@ const Discentes = () => {
                                                     <Check
                                                       className={cn(
                                                         "mr-2 h-4 w-4",
-                                                        selectedOrientador === docente.nome ? "opacity-100" : "opacity-0"
+                                                        selectedOrientador === docente.name ? "opacity-100" : "opacity-0"
                                                       )}
                                                     />
-                                                    {docente.nome}
+                                                    {docente.name}
                                                   </CommandItem>
                                                 ))}
                                               </CommandGroup>
@@ -275,7 +350,7 @@ const Discentes = () => {
                                             className="w-full justify-between mt-1"
                                           >
                                             {selectedCoOrientador
-                                              ? mockDocentes.find((docente) => docente.nome === selectedCoOrientador)?.nome
+                                              ? docentes.find((docente) => docente.name === selectedCoOrientador)?.name
                                               : "Selecione um co-orientador..."}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                           </Button>
@@ -301,10 +376,10 @@ const Discentes = () => {
                                                   />
                                                   Nenhum co-orientador
                                                 </CommandItem>
-                                                {mockDocentes.map((docente) => (
+                                                {docentes.map((docente) => (
                                                   <CommandItem
                                                     key={docente.id}
-                                                    value={docente.nome}
+                                                    value={docente.name}
                                                     onSelect={(currentValue) => {
                                                       setSelectedCoOrientador(currentValue === selectedCoOrientador ? "" : currentValue);
                                                       setCoOrientadorOpen(false);
@@ -313,10 +388,10 @@ const Discentes = () => {
                                                     <Check
                                                       className={cn(
                                                         "mr-2 h-4 w-4",
-                                                        selectedCoOrientador === docente.nome ? "opacity-100" : "opacity-0"
+                                                        selectedCoOrientador === docente.name ? "opacity-100" : "opacity-0"
                                                       )}
                                                     />
-                                                    {docente.nome}
+                                                    {docente.name}
                                                   </CommandItem>
                                                 ))}
                                               </CommandGroup>
@@ -331,8 +406,12 @@ const Discentes = () => {
                               
                               {/* Actions */}
                               <div className="flex justify-end gap-3 pt-6 border-t">
-                                <Button variant="outline" onClick={handleCancelNewDiscente}>Cancelar</Button>
-                                <Button>Salvar Discente</Button>
+                                <Button variant="outline" onClick={handleCancelNewDiscente} disabled={createMutation.isPending}>
+                                  Cancelar
+                                </Button>
+                                <Button onClick={handleCreateSubmit} disabled={createMutation.isPending}>
+                                  {createMutation.isPending ? 'Salvando...' : 'Salvar Discente'}
+                                </Button>
                               </div>
                             </DialogContent>
                           </Dialog>
@@ -402,28 +481,33 @@ const Discentes = () => {
                                   <TableCell>{discente.orientador}</TableCell>
                                   <TableCell>
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      discente.mestradoStatus === 'concluido' ? 'bg-green-100 text-green-800' :
-                                      discente.mestradoStatus === 'em-curso' ? 'bg-blue-100 text-blue-800' :
+                                      discente.mestrado_status === 'completed' ? 'bg-green-100 text-green-800' :
+                                      discente.mestrado_status === 'active' ? 'bg-blue-100 text-blue-800' :
                                       'bg-gray-100 text-gray-800'
                                     }`}>
-                                      {discente.mestradoStatus === 'concluido' ? 'Concluído' :
-                                       discente.mestradoStatus === 'em-curso' ? 'Em curso' : 'Não iniciado'}
+                                      {discente.mestrado_status === 'completed' ? 'Concluído' :
+                                       discente.mestrado_status === 'active' ? 'Em curso' : 'Não iniciado'}
                                     </span>
                                   </TableCell>
                                   <TableCell>
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      discente.doutoradoStatus === 'concluido' ? 'bg-green-100 text-green-800' :
-                                      discente.doutoradoStatus === 'em-curso' ? 'bg-blue-100 text-blue-800' :
+                                      discente.doutorado_status === 'completed' ? 'bg-green-100 text-green-800' :
+                                      discente.doutorado_status === 'active' ? 'bg-blue-100 text-blue-800' :
                                       'bg-gray-100 text-gray-800'
                                     }`}>
-                                      {discente.doutoradoStatus === 'concluido' ? 'Concluído' :
-                                       discente.doutoradoStatus === 'em-curso' ? 'Em curso' : 'Não iniciado'}
+                                      {discente.doutorado_status === 'completed' ? 'Concluído' :
+                                       discente.doutorado_status === 'active' ? 'Em curso' : 'Não iniciado'}
                                     </span>
                                   </TableCell>
                                   <TableCell>
                                     <Dialog open={editDiscenteOpen} onOpenChange={setEditDiscenteOpen}>
                                       <DialogTrigger asChild>
-                                         <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
+                                         <Button
+                                           variant="outline"
+                                           size="icon"
+                                           className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                           onClick={() => handleEditDiscente(discente)}
+                                         >
                                            <Edit className="w-4 h-4" />
                                          </Button>
                                       </DialogTrigger>
@@ -438,11 +522,24 @@ const Discentes = () => {
                                             <div className="space-y-3">
                                               <div>
                                                 <Label htmlFor="edit-nome" className="text-sm font-medium">Nome completo *</Label>
-                                                <Input id="edit-nome" defaultValue={discente.nome} placeholder="Nome completo" className="mt-1" />
+                                                <Input
+                                                  id="edit-nome"
+                                                  value={nome}
+                                                  onChange={(e) => setNome(e.target.value)}
+                                                  placeholder="Nome completo"
+                                                  className="mt-1"
+                                                />
                                               </div>
                                               <div>
                                                 <Label htmlFor="edit-email" className="text-sm font-medium">Email *</Label>
-                                                <Input id="edit-email" defaultValue={discente.email} placeholder="Email" type="email" className="mt-1" />
+                                                <Input
+                                                  id="edit-email"
+                                                  value={email}
+                                                  onChange={(e) => setEmail(e.target.value)}
+                                                  placeholder="Email"
+                                                  type="email"
+                                                  className="mt-1"
+                                                />
                                               </div>
                                             </div>
                                           </div>
@@ -452,14 +549,32 @@ const Discentes = () => {
                                             <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Nível Acadêmico</h3>
                                             <div>
                                               <Label className="text-sm font-medium">Nível de Pós-Graduação *</Label>
-                                              <RadioGroup defaultValue={discente.nivelPosGraduacao} className="mt-3 space-y-2">
+                                              <RadioGroup value={selectedNivelPosGraduacao} onValueChange={setSelectedNivelPosGraduacao} className="mt-3 space-y-2">
                                                 <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
-                                                  <RadioGroupItem value="mestrado" id="edit-mestrado" />
-                                                  <Label htmlFor="edit-mestrado" className="cursor-pointer">Mestrado</Label>
+                                                  <RadioGroupItem
+                                                    value="mestrado"
+                                                    id="edit-mestrado"
+                                                    disabled={!availableLevels.includes('mestrado')}
+                                                  />
+                                                  <Label
+                                                    htmlFor="edit-mestrado"
+                                                    className={`cursor-pointer ${!availableLevels.includes('mestrado') ? 'text-muted-foreground opacity-50' : ''}`}
+                                                  >
+                                                    Mestrado
+                                                  </Label>
                                                 </div>
                                                 <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
-                                                  <RadioGroupItem value="doutorado" id="edit-doutorado" />
-                                                  <Label htmlFor="edit-doutorado" className="cursor-pointer">Doutorado</Label>
+                                                  <RadioGroupItem
+                                                    value="doutorado"
+                                                    id="edit-doutorado"
+                                                    disabled={!availableLevels.includes('doutorado')}
+                                                  />
+                                                  <Label
+                                                    htmlFor="edit-doutorado"
+                                                    className={`cursor-pointer ${!availableLevels.includes('doutorado') ? 'text-muted-foreground opacity-50' : ''}`}
+                                                  >
+                                                    Doutorado
+                                                  </Label>
                                                 </div>
                                               </RadioGroup>
                                             </div>
@@ -478,7 +593,7 @@ const Discentes = () => {
                                                       role="combobox"
                                                       className="w-full justify-between mt-1"
                                                     >
-                                                      {discente.orientador || "Selecione um orientador..."}
+                                                      {selectedOrientador || "Selecione um orientador..."}
                                                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                   </PopoverTrigger>
@@ -488,10 +603,21 @@ const Discentes = () => {
                                                       <CommandList>
                                                         <CommandEmpty>Nenhum orientador encontrado.</CommandEmpty>
                                                         <CommandGroup>
-                                                          {mockDocentes.map((docente) => (
-                                                            <CommandItem key={docente.id} value={docente.nome}>
-                                                              <Check className="mr-2 h-4 w-4 opacity-0" />
-                                                              {docente.nome}
+                                                          {docentes.map((docente) => (
+                                                            <CommandItem
+                                                              key={docente.id}
+                                                              value={docente.name}
+                                                              onSelect={(currentValue) => {
+                                                                setSelectedOrientador(currentValue === selectedOrientador ? "" : currentValue);
+                                                              }}
+                                                            >
+                                                              <Check
+                                                                className={cn(
+                                                                  "mr-2 h-4 w-4",
+                                                                  selectedOrientador === docente.name ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                              />
+                                                              {docente.name}
                                                             </CommandItem>
                                                           ))}
                                                         </CommandGroup>
@@ -509,7 +635,7 @@ const Discentes = () => {
                                                       role="combobox"
                                                       className="w-full justify-between mt-1"
                                                     >
-                                                      {discente.coOrientador || "Selecione um co-orientador..."}
+                                                      {selectedCoOrientador || "Selecione um co-orientador..."}
                                                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
                                                   </PopoverTrigger>
@@ -523,10 +649,21 @@ const Discentes = () => {
                                                             <Check className="mr-2 h-4 w-4 opacity-0" />
                                                             Nenhum co-orientador
                                                           </CommandItem>
-                                                          {mockDocentes.map((docente) => (
-                                                            <CommandItem key={docente.id} value={docente.nome}>
-                                                              <Check className="mr-2 h-4 w-4 opacity-0" />
-                                                              {docente.nome}
+                                                          {docentes.map((docente) => (
+                                                            <CommandItem
+                                                              key={docente.id}
+                                                              value={docente.name}
+                                                              onSelect={(currentValue) => {
+                                                                setSelectedCoOrientador(currentValue === selectedCoOrientador ? "" : currentValue);
+                                                              }}
+                                                            >
+                                                              <Check
+                                                                className={cn(
+                                                                  "mr-2 h-4 w-4",
+                                                                  selectedCoOrientador === docente.name ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                              />
+                                                              {docente.name}
                                                             </CommandItem>
                                                           ))}
                                                         </CommandGroup>
@@ -540,9 +677,20 @@ const Discentes = () => {
                                         </div>
                                         
                                         {/* Actions */}
-                                        <div className="flex justify-end gap-3 pt-6 border-t">
-                                          <Button variant="outline" onClick={handleCancelEditDiscente}>Cancelar</Button>
-                                          <Button>Salvar Alterações</Button>
+                                        <div className="flex justify-between pt-6 border-t">
+                                          <Button
+                                            variant="outline"
+                                            onClick={() => editingDiscente && resetPasswordMutation.mutate(editingDiscente.id)}
+                                            disabled={resetPasswordMutation.isPending}
+                                            className="flex items-center gap-2"
+                                          >
+                                            <RotateCcw className="w-4 h-4" />
+                                            {resetPasswordMutation.isPending ? 'Resetando...' : 'Resetar Senha'}
+                                          </Button>
+                                          <div className="flex gap-3">
+                                            <Button variant="outline" onClick={handleCancelEditDiscente}>Cancelar</Button>
+                                            <Button onClick={handleEditSubmit}>Salvar Alterações</Button>
+                                          </div>
                                         </div>
                                       </DialogContent>
                                     </Dialog>

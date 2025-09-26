@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -74,5 +75,20 @@ class User extends Authenticatable
     public function isDocente(): bool
     {
         return $this->roles()->where('role_id', 2)->exists();
+    }
+
+    public function isDiscente(): bool
+    {
+        return $this->roles()->where('role_id', 3)->exists();
+    }
+
+    public function academicBonds(): HasMany
+    {
+        return $this->hasMany(AcademicBond::class, 'student_id');
+    }
+
+    public function advisedBonds(): HasMany
+    {
+        return $this->hasMany(AcademicBond::class, 'advisor_id');
     }
 }

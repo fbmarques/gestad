@@ -17,6 +17,8 @@ import Eventos from "./pages/Eventos";
 import EventosExcluidos from "./pages/EventosExcluidos";
 import Docentes from "./pages/Docentes";
 import DocentesExcluidos from "./pages/DocentesExcluidos";
+import Discentes from "./pages/Discentes";
+import DiscentesExcluidos from "./pages/DiscentesExcluidos";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,9 @@ function App() {
             <Route path="/docentes" element={<Docentes />} />
             <Route path="/docente" element={<Docentes />} />
             <Route path="/docentes-excluidos" element={<DocentesExcluidos />} />
+            <Route path="/discentes" element={<Discentes />} />
+            <Route path="/discente" element={<Discentes />} />
+            <Route path="/discentes-excluidos" element={<DiscentesExcluidos />} />
           </Routes>
         </BrowserRouter>
       </ThemeProvider>
