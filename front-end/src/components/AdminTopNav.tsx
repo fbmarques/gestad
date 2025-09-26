@@ -1,17 +1,19 @@
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  Moon, 
-  Sun, 
-  Users, 
-  Home, 
-  GraduationCap, 
-  FileText, 
+import {
+  Moon,
+  Sun,
+  Users,
+  Home,
+  GraduationCap,
+  FileText,
   ChevronDown,
   BarChart3,
   LogOut
 } from "lucide-react";
+import { getStatsCounts } from "@/lib/api";
 
 interface AdminTopNavProps {
   isDarkMode: boolean;
@@ -21,18 +23,54 @@ interface AdminTopNavProps {
 const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
   const navigate = useNavigate();
 
+  // Buscar contadores da API
+  const { data: counts, isLoading } = useQuery({
+    queryKey: ['stats-counts'],
+    queryFn: getStatsCounts,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    refetchInterval: 1000 * 60 * 5, // Refetch a cada 5 minutos
+  });
+
   const dropdownMenuItems = [
     {
       title: "Cadastro",
       icon: Users,
       items: [
-        { label: "Discentes", path: "/discentes", badge: "247" },
-        { label: "Docentes", path: "/docentes", badge: null },
-        { label: "Linhas de Pesquisa", path: "/linhaspesquisa", badge: null },
-        { label: "Disciplinas", path: "/disciplinas", badge: "18" },
-        { label: "Agências", path: "/agencias", badge: null },
-        { label: "Revistas", path: "/revistas", badge: null },
-        { label: "Eventos", path: "/eventos", badge: null }
+        {
+          label: "Discentes",
+          path: "/discentes",
+          badge: isLoading ? "..." : counts?.discentes?.toString() || "0"
+        },
+        {
+          label: "Docentes",
+          path: "/docentes",
+          badge: isLoading ? "..." : counts?.docentes?.toString() || "0"
+        },
+        {
+          label: "Linhas de Pesquisa",
+          path: "/linhaspesquisa",
+          badge: isLoading ? "..." : counts?.linhaspesquisa?.toString() || "0"
+        },
+        {
+          label: "Disciplinas",
+          path: "/disciplinas",
+          badge: isLoading ? "..." : counts?.disciplinas?.toString() || "0"
+        },
+        {
+          label: "Agências",
+          path: "/agencias",
+          badge: isLoading ? "..." : counts?.agencias?.toString() || "0"
+        },
+        {
+          label: "Revistas",
+          path: "/revistas",
+          badge: isLoading ? "..." : counts?.revistas?.toString() || "0"
+        },
+        {
+          label: "Eventos",
+          path: "/eventos",
+          badge: isLoading ? "..." : counts?.eventos?.toString() || "0"
+        }
       ]
     }
   ];
@@ -105,7 +143,7 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
             <FileText className="w-4 h-4" />
             Produções
             <span className="ml-2 px-2 py-1 text-xs bg-orange-500/20 text-orange-600 rounded-full">
-              5
+              {isLoading ? "..." : counts?.producoes?.toString() || "0"}
             </span>
           </Button>
 

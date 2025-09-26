@@ -9,6 +9,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResearchLineController;
+use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication routes
@@ -21,6 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/roles', [ProfileController::class, 'getUserRoles']);
     Route::get('/user/profile', [ProfileController::class, 'getUserProfile']);
     Route::put('/user/theme', [ProfileController::class, 'updateTheme']);
+
+    // Stats routes (accessible by admin and docente)
+    Route::get('/stats/counts', [StatsController::class, 'getCounts']);
 
     // Research Lines routes (accessible by admin and docente)
     Route::apiResource('research-lines', ResearchLineController::class);

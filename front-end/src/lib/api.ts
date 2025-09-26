@@ -487,4 +487,22 @@ export const resetDiscentePassword = async (id: number): Promise<void> => {
   await api.post(`/api/discentes/${id}/reset-password`);
 };
 
+// Stats types
+export interface StatsCountsResponse {
+  discentes: number;
+  docentes: number;
+  linhaspesquisa: number;
+  disciplinas: number;
+  agencias: number;
+  revistas: number;
+  eventos: number;
+  producoes: number;
+}
+
+// Stats API functions
+export const getStatsCounts = async (): Promise<StatsCountsResponse> => {
+  const response = await api.get<StatsCountsResponse>('/api/stats/counts');
+  return response.data;
+};
+
 export default api;
