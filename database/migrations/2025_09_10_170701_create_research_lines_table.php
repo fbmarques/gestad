@@ -15,9 +15,13 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->foreignId('coordinator_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('coordinator_id')->nullable();
             $table->softDeletes();
             $table->timestamps();
+        });
+
+        Schema::table('research_lines', function (Blueprint $table) {
+            $table->foreign('coordinator_id')->references('id')->on('users')->onDelete('set null');
         });
     }
 
