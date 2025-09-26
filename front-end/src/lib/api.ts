@@ -74,7 +74,34 @@ export interface CourseFormData {
   credits: number;
 }
 
-export interface Docente {
+// Docentes types
+export interface DocenteExcluido {
+  id: number;
+  nome: string;
+  email: string;
+  linhaPesquisa: string;
+  research_line_id?: number;
+  is_admin: boolean;
+  dataExclusao: string;
+}
+
+export interface DocenteData {
+  id: number;
+  nome: string;
+  email: string;
+  linhaPesquisa: string;
+  research_line_id?: number;
+  is_admin: boolean;
+}
+
+export interface DocenteFormData {
+  nome: string;
+  email: string;
+  research_line_id: number;
+  is_admin: boolean;
+}
+
+export interface ResearchLineDropdown {
   id: number;
   name: string;
 }
@@ -137,9 +164,46 @@ export const restoreResearchLine = async (id: number): Promise<void> => {
   await api.post(`/api/research-lines/${id}/restore`);
 };
 
-export const getDocentes = async (): Promise<Docente[]> => {
+// Docentes API functions
+export const getDocentes = async (): Promise<DocenteData[]> => {
+  const response = await api.get<DocenteData[]>('/api/docentes');
+  return response.data;
+};
+
+export const getTrashedDocentes = async (): Promise<DocenteExcluido[]> => {
+  const response = await api.get<DocenteExcluido[]>('/api/docentes-trashed');
+  return response.data;
+};
+
+export const createDocente = async (data: DocenteFormData): Promise<DocenteData> => {
   await api.get('/sanctum/csrf-cookie');
-  const response = await api.get<Docente[]>('/api/docentes');
+  const response = await api.post('/api/docentes', data);
+  return response.data.docente;
+};
+
+export const updateDocente = async (id: number, data: DocenteFormData): Promise<DocenteData> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.put(`/api/docentes/${id}`, data);
+  return response.data.docente;
+};
+
+export const deleteDocente = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.delete(`/api/docentes/${id}`);
+};
+
+export const restoreDocente = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/docentes/${id}/restore`);
+};
+
+export const resetDocentePassword = async (id: number): Promise<void> => {
+  await api.get('/sanctum/csrf-cookie');
+  await api.post(`/api/docentes/${id}/reset-password`);
+};
+
+export const getResearchLinesDropdown = async (): Promise<ResearchLineDropdown[]> => {
+  const response = await api.get<ResearchLineDropdown[]>('/api/research-lines-dropdown');
   return response.data;
 };
 

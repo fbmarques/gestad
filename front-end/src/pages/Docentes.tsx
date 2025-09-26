@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -9,74 +10,96 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Moon, Sun, Plus, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Moon, Sun, Plus, Trash2, Edit, ChevronLeft, ChevronRight, User, KeyRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getDocentes, getTrashedDocentes, createDocente, updateDocente, deleteDocente, resetDocentePassword, getResearchLinesDropdown, DocenteData, DocenteFormData, ResearchLineDropdown } from "@/lib/api";
 
-interface Docente {
-  id: string;
+// Form data interfaces for local state
+interface FormData {
   nome: string;
   email: string;
-  linhaPesquisa: string;
+  research_line_id: string;
+  is_admin: boolean;
 }
 
-const linhasPesquisa = [
-  "Inteligência Artificial",
-  "Engenharia de Software", 
-  "Banco de Dados",
-  "Redes de Computadores",
-  "Computação Gráfica",
-  "Sistemas Distribuídos",
-  "Segurança da Informação",
-  "Algoritmos e Complexidade",
-  "Interação Humano-Computador",
-  "Visão Computacional",
-  "Computação Móvel",
-  "Mineração de Dados",
-  "Robótica",
-  "Processamento de Linguagem Natural",
-  "Internet das Coisas",
-  "Computação em Nuvem",
-  "Bioinformática",
-  "Sistemas Embarcados",
-  "Computação Quântica",
-  "Blockchain e Criptomoedas"
-];
-
-const mockDocentes: Docente[] = [
-  { id: "1", nome: "Dr. Maria Santos", email: "maria.santos@email.com", linhaPesquisa: "Inteligência Artificial" },
-  { id: "2", nome: "Dr. Pedro Lima", email: "pedro.lima@email.com", linhaPesquisa: "Engenharia de Software" },
-  { id: "3", nome: "Dra. Julia Fernandes", email: "julia.fernandes@email.com", linhaPesquisa: "Banco de Dados" },
-  { id: "4", nome: "Dr. Roberto Alves", email: "roberto.alves@email.com", linhaPesquisa: "Redes de Computadores" },
-  { id: "5", nome: "Dra. Ana Carolina", email: "ana.carolina@email.com", linhaPesquisa: "Computação Gráfica" },
-  { id: "6", nome: "Dr. Carlos Eduardo", email: "carlos.eduardo@email.com", linhaPesquisa: "Sistemas Distribuídos" },
-  { id: "7", nome: "Dra. Mariana Costa", email: "mariana.costa@email.com", linhaPesquisa: "Segurança da Informação" },
-  { id: "8", nome: "Dr. Paulo Ricardo", email: "paulo.ricardo@email.com", linhaPesquisa: "Algoritmos e Complexidade" },
-  { id: "9", nome: "Dra. Sandra Melo", email: "sandra.melo@email.com", linhaPesquisa: "Interação Humano-Computador" },
-  { id: "10", nome: "Dr. Fernando Silva", email: "fernando.silva@email.com", linhaPesquisa: "Visão Computacional" },
-  { id: "11", nome: "Dra. Patrícia Rocha", email: "patricia.rocha@email.com", linhaPesquisa: "Computação Móvel" },
-  { id: "12", nome: "Dr. Marcos Vieira", email: "marcos.vieira@email.com", linhaPesquisa: "Mineração de Dados" },
-  { id: "13", nome: "Dra. Carla Nascimento", email: "carla.nascimento@email.com", linhaPesquisa: "Robótica" },
-  { id: "14", nome: "Dr. André Campos", email: "andre.campos@email.com", linhaPesquisa: "Processamento de Linguagem Natural" },
-  { id: "15", nome: "Dra. Mônica Teixeira", email: "monica.teixeira@email.com", linhaPesquisa: "Internet das Coisas" },
-  { id: "16", nome: "Dr. Sérgio Monteiro", email: "sergio.monteiro@email.com", linhaPesquisa: "Computação em Nuvem" },
-  { id: "17", nome: "Dra. Beatriz Cunha", email: "beatriz.cunha@email.com", linhaPesquisa: "Bioinformática" },
-  { id: "18", nome: "Dr. Rodrigo Nunes", email: "rodrigo.nunes@email.com", linhaPesquisa: "Sistemas Embarcados" },
-  { id: "19", nome: "Dra. Renata Lopes", email: "renata.lopes@email.com", linhaPesquisa: "Computação Quântica" },
-  { id: "20", nome: "Dr. Fábio Correia", email: "fabio.correia@email.com", linhaPesquisa: "Blockchain e Criptomoedas" }
-];
+interface EditFormData extends FormData {
+  id: number;
+}
 
 const Docentes = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // State for UI
   const [searchTerm, setSearchTerm] = useState("");
-  const [docentes, setDocentes] = useState<Docente[]>(mockDocentes);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [newDocenteOpen, setNewDocenteOpen] = useState(false);
   const [editDocenteOpen, setEditDocenteOpen] = useState(false);
-  const [selectedLinhaPesquisa, setSelectedLinhaPesquisa] = useState("");
-  const navigate = useNavigate();
+
+  // Form state
+  const [newFormData, setNewFormData] = useState<FormData>({
+    nome: "",
+    email: "",
+    research_line_id: "none",
+    is_admin: false,
+  });
+
+  const [editFormData, setEditFormData] = useState<EditFormData>({
+    id: 0,
+    nome: "",
+    email: "",
+    research_line_id: "none",
+    is_admin: false,
+  });
+
+  // React Query hooks
+  const { data: docentes = [], isLoading, error } = useQuery({
+    queryKey: ["docentes"],
+    queryFn: getDocentes,
+  });
+
+  const { data: researchLines = [] } = useQuery({
+    queryKey: ["research-lines-dropdown"],
+    queryFn: getResearchLinesDropdown,
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: createDocente,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["docentes"] });
+      setNewDocenteOpen(false);
+      resetNewForm();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: DocenteFormData }) =>
+      updateDocente(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["docentes"] });
+      setEditDocenteOpen(false);
+      resetEditForm();
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteDocente,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["docentes"] });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetDocentePassword,
+    onSuccess: () => {
+      // No need to invalidate queries, just show success feedback if needed
+    },
+  });
 
   const filteredDocentes = docentes.filter(docente =>
     docente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,8 +113,33 @@ const Docentes = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentDocentes = filteredDocentes.slice(startIndex, endIndex);
 
-  const handleDelete = (id: string) => {
-    setDocentes(prev => prev.filter(d => d.id !== id));
+  // Helper functions
+  const resetNewForm = () => {
+    setNewFormData({
+      nome: "",
+      email: "",
+      research_line_id: "none",
+      is_admin: false,
+    });
+  };
+
+  const resetEditForm = () => {
+    setEditFormData({
+      id: 0,
+      nome: "",
+      email: "",
+      research_line_id: "none",
+      is_admin: false,
+    });
+  };
+
+  // Event handlers
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleResetPassword = (id: number) => {
+    resetPasswordMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -100,23 +148,59 @@ const Docentes = () => {
 
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number(value));
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1);
   };
 
-  // Reset page when search changes
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
   };
 
-  const handleCancelNewDocente = () => {
-    setNewDocenteOpen(false);
-    setSelectedLinhaPesquisa("");
+  const handleCreateSubmit = () => {
+    if (newFormData.research_line_id === "none") return;
+
+    const formData: DocenteFormData = {
+      nome: newFormData.nome,
+      email: newFormData.email,
+      research_line_id: parseInt(newFormData.research_line_id),
+      is_admin: newFormData.is_admin,
+    };
+
+    createMutation.mutate(formData);
   };
 
-  const handleCancelEditDocente = () => {
+  const handleEditSubmit = () => {
+    if (editFormData.research_line_id === "none") return;
+
+    const formData: DocenteFormData = {
+      nome: editFormData.nome,
+      email: editFormData.email,
+      research_line_id: parseInt(editFormData.research_line_id),
+      is_admin: editFormData.is_admin,
+    };
+
+    updateMutation.mutate({ id: editFormData.id, data: formData });
+  };
+
+  const openEditModal = (docente: DocenteData) => {
+    setEditFormData({
+      id: docente.id,
+      nome: docente.nome,
+      email: docente.email,
+      research_line_id: docente.research_line_id?.toString() || "none",
+      is_admin: docente.is_admin,
+    });
+    setEditDocenteOpen(true);
+  };
+
+  const handleCancelNew = () => {
+    setNewDocenteOpen(false);
+    resetNewForm();
+  };
+
+  const handleCancelEdit = () => {
     setEditDocenteOpen(false);
-    setSelectedLinhaPesquisa("");
+    resetEditForm();
   };
 
   return (
@@ -150,11 +234,32 @@ const Docentes = () => {
                                   <div className="space-y-3">
                                     <div>
                                       <Label htmlFor="nome" className="text-sm font-medium">Nome completo *</Label>
-                                      <Input id="nome" placeholder="Nome completo" className="mt-1" />
+                                      <Input
+                                        id="nome"
+                                        placeholder="Nome completo"
+                                        className="mt-1"
+                                        value={newFormData.nome}
+                                        onChange={(e) => setNewFormData({ ...newFormData, nome: e.target.value })}
+                                      />
                                     </div>
                                     <div>
                                       <Label htmlFor="email" className="text-sm font-medium">Email *</Label>
-                                      <Input id="email" placeholder="Email" type="email" className="mt-1" />
+                                      <Input
+                                        id="email"
+                                        placeholder="Email"
+                                        type="email"
+                                        className="mt-1"
+                                        value={newFormData.email}
+                                        onChange={(e) => setNewFormData({ ...newFormData, email: e.target.value })}
+                                      />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                      <Switch
+                                        id="is-admin"
+                                        checked={newFormData.is_admin}
+                                        onCheckedChange={(checked) => setNewFormData({ ...newFormData, is_admin: checked })}
+                                      />
+                                      <Label htmlFor="is-admin" className="text-sm font-medium">Usuário também é administrador</Label>
                                     </div>
                                   </div>
                                 </div>
@@ -164,24 +269,35 @@ const Docentes = () => {
                                   <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Área de Atuação</h3>
                                   <div>
                                     <Label className="text-sm font-medium">Linha de Pesquisa *</Label>
-                                    <div className="mt-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                                      <RadioGroup value={selectedLinhaPesquisa} onValueChange={setSelectedLinhaPesquisa} className="space-y-2">
-                                        {linhasPesquisa.map((linha, index) => (
-                                          <div key={index} className="flex items-center space-x-3 p-1 rounded-md hover:bg-muted/50">
-                                            <RadioGroupItem value={linha} id={`linha-${index}`} />
-                                            <Label htmlFor={`linha-${index}`} className="cursor-pointer text-sm">{linha}</Label>
-                                          </div>
+                                    <Select
+                                      value={newFormData.research_line_id}
+                                      onValueChange={(value) => setNewFormData({ ...newFormData, research_line_id: value })}
+                                    >
+                                      <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder="Selecione uma linha de pesquisa" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">Selecione uma linha de pesquisa</SelectItem>
+                                        {researchLines.map((line) => (
+                                          <SelectItem key={line.id} value={line.id.toString()}>
+                                            {line.name}
+                                          </SelectItem>
                                         ))}
-                                      </RadioGroup>
-                                    </div>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 </div>
                               </div>
                               
                               {/* Actions */}
                               <div className="flex justify-end gap-3 pt-6 border-t">
-                                <Button variant="outline" onClick={handleCancelNewDocente}>Cancelar</Button>
-                                <Button>Salvar Docente</Button>
+                                <Button variant="outline" onClick={handleCancelNew}>Cancelar</Button>
+                                <Button
+                                  onClick={handleCreateSubmit}
+                                  disabled={createMutation.isPending}
+                                >
+                                  {createMutation.isPending ? "Salvando..." : "Salvar Docente"}
+                                </Button>
                               </div>
                             </DialogContent>
                           </Dialog>
@@ -237,69 +353,43 @@ const Docentes = () => {
                                 <TableHead className="font-bold text-foreground">Nome</TableHead>
                                 <TableHead className="font-bold text-foreground">Email</TableHead>
                                 <TableHead className="font-bold text-foreground">Linha de Pesquisa</TableHead>
+                                <TableHead className="w-12 font-bold text-foreground">Adm</TableHead>
                                 <TableHead className="w-12 font-bold text-foreground">Edt</TableHead>
                                 <TableHead className="w-12 font-bold text-foreground">Exc</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {currentDocentes.map((docente) => (
+                              {isLoading ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-8">
+                                    Carregando...
+                                  </TableCell>
+                                </TableRow>
+                              ) : error ? (
+                                <TableRow>
+                                  <TableCell colSpan={6} className="text-center py-8 text-red-500">
+                                    Erro ao carregar docentes
+                                  </TableCell>
+                                </TableRow>
+                              ) : currentDocentes.map((docente) => (
                                 <TableRow key={docente.id}>
                                   <TableCell className="font-medium">{docente.nome}</TableCell>
                                   <TableCell>{docente.email}</TableCell>
                                   <TableCell>{docente.linhaPesquisa}</TableCell>
+                                  <TableCell className="text-center">
+                                    {docente.is_admin ? (
+                                      <User className="w-4 h-4 mx-auto text-blue-600" />
+                                    ) : null}
+                                  </TableCell>
                                   <TableCell>
-                                    <Dialog open={editDocenteOpen} onOpenChange={setEditDocenteOpen}>
-                                      <DialogTrigger asChild>
-                                        <Button variant="outline" size="icon" className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500">
-                                          <Edit className="w-4 h-4" />
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="max-w-2xl">
-                                        <DialogHeader className="pb-4">
-                                          <DialogTitle className="text-xl font-semibold">Editar Docente</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                          {/* Informações Pessoais */}
-                                          <div className="space-y-4">
-                                            <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Informações Pessoais</h3>
-                                            <div className="space-y-3">
-                                              <div>
-                                                <Label htmlFor="edit-nome" className="text-sm font-medium">Nome completo *</Label>
-                                                <Input id="edit-nome" defaultValue={docente.nome} placeholder="Nome completo" className="mt-1" />
-                                              </div>
-                                              <div>
-                                                <Label htmlFor="edit-email" className="text-sm font-medium">Email *</Label>
-                                                <Input id="edit-email" defaultValue={docente.email} placeholder="Email" type="email" className="mt-1" />
-                                              </div>
-                                            </div>
-                                          </div>
-
-                                          {/* Linha de Pesquisa */}
-                                          <div className="space-y-4">
-                                            <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Área de Atuação</h3>
-                                            <div>
-                                              <Label className="text-sm font-medium">Linha de Pesquisa *</Label>
-                                              <div className="mt-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                                                <RadioGroup defaultValue={docente.linhaPesquisa} className="space-y-2">
-                                                  {linhasPesquisa.map((linha, index) => (
-                                                    <div key={index} className="flex items-center space-x-3 p-1 rounded-md hover:bg-muted/50">
-                                                      <RadioGroupItem value={linha} id={`edit-linha-${index}`} />
-                                                      <Label htmlFor={`edit-linha-${index}`} className="cursor-pointer text-sm">{linha}</Label>
-                                                    </div>
-                                                  ))}
-                                                </RadioGroup>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Actions */}
-                                        <div className="flex justify-end gap-3 pt-6 border-t">
-                                          <Button variant="outline" onClick={handleCancelEditDocente}>Cancelar</Button>
-                                          <Button>Salvar Alterações</Button>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                      onClick={() => openEditModal(docente)}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
                                   </TableCell>
                                   <TableCell>
                                     <AlertDialog>
@@ -326,9 +416,9 @@ const Docentes = () => {
                                   </TableCell>
                                 </TableRow>
                               ))}
-                              {currentDocentes.length === 0 && (
+                              {currentDocentes.length === 0 && !isLoading && !error && (
                                 <TableRow>
-                                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                     {searchTerm ? "Nenhum docente encontrado" : "Nenhum registro para exibir"}
                                   </TableCell>
                                 </TableRow>
@@ -402,6 +492,114 @@ const Docentes = () => {
                   </Card>
           </div>
         </div>
+
+        {/* Edit Docente Modal */}
+        <Dialog open={editDocenteOpen} onOpenChange={setEditDocenteOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-xl font-semibold">Editar Docente</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Informações Pessoais */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Informações Pessoais</h3>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="edit-nome" className="text-sm font-medium">Nome completo *</Label>
+                    <Input
+                      id="edit-nome"
+                      placeholder="Nome completo"
+                      className="mt-1"
+                      value={editFormData.nome}
+                      onChange={(e) => setEditFormData({ ...editFormData, nome: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-email" className="text-sm font-medium">Email *</Label>
+                    <Input
+                      id="edit-email"
+                      placeholder="Email"
+                      type="email"
+                      className="mt-1"
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="edit-is-admin"
+                      checked={editFormData.is_admin}
+                      onCheckedChange={(checked) => setEditFormData({ ...editFormData, is_admin: checked })}
+                    />
+                    <Label htmlFor="edit-is-admin" className="text-sm font-medium">Usuário também é administrador</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Linha de Pesquisa */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-muted-foreground border-b pb-2">Área de Atuação</h3>
+                <div>
+                  <Label className="text-sm font-medium">Linha de Pesquisa *</Label>
+                  <Select
+                    value={editFormData.research_line_id}
+                    onValueChange={(value) => setEditFormData({ ...editFormData, research_line_id: value })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Selecione uma linha de pesquisa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Selecione uma linha de pesquisa</SelectItem>
+                      {researchLines.map((line) => (
+                        <SelectItem key={line.id} value={line.id.toString()}>
+                          {line.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-between items-center pt-6 border-t">
+              <div className="flex gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="bg-yellow-500 border-yellow-500 text-white hover:bg-yellow-600 hover:border-yellow-600">
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      Resetar Senha
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar reset de senha</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja resetar a senha do docente "{editFormData.nome}" para "123321"?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleResetPassword(editFormData.id)}>
+                        Resetar Senha
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={handleCancelEdit}>Cancelar</Button>
+                <Button
+                  onClick={handleEditSubmit}
+                  disabled={updateMutation.isPending}
+                >
+                  {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

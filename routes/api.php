@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProfileController;
@@ -45,4 +46,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('events', EventController::class);
     Route::get('/events-trashed', [EventController::class, 'trashed']);
     Route::post('/events/{id}/restore', [EventController::class, 'restore']);
+
+    // Docentes routes (accessible by admin and docente)
+    Route::apiResource('docentes', DocenteController::class);
+    Route::get('/docentes-trashed', [DocenteController::class, 'trashed']);
+    Route::post('/docentes/{id}/restore', [DocenteController::class, 'restore']);
+    Route::post('/docentes/{docente}/reset-password', [DocenteController::class, 'resetPassword']);
+    Route::get('/research-lines-dropdown', [DocenteController::class, 'researchLines']);
 });

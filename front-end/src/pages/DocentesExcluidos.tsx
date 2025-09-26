@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
@@ -7,48 +8,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, ArrowLeft, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getTrashedDocentes, restoreDocente } from "@/lib/api";
 
-interface DocenteExcluido {
-  id: string;
-  nome: string;
-  email: string;
-  linhaPesquisa: string;
-  dataExclusao: string;
-}
-
-const mockDocentesExcluidos: DocenteExcluido[] = [
-  { 
-    id: "1", 
-    nome: "Dr. João Silva Excluído", 
-    email: "joao.excluido@email.com", 
-    linhaPesquisa: "Inteligência Artificial",
-    dataExclusao: "07/09/2025 08:15:30"
-  },
-  { 
-    id: "2", 
-    nome: "Dra. Maria Santos Excluída", 
-    email: "maria.excluida@email.com", 
-    linhaPesquisa: "Banco de Dados",
-    dataExclusao: "06/09/2025 14:22:10"
-  },
-  { 
-    id: "3", 
-    nome: "Dr. Pedro Costa Excluído", 
-    email: "pedro.excluido@email.com", 
-    linhaPesquisa: "Redes de Computadores",
-    dataExclusao: "05/09/2025 11:45:55"
-  }
-];
+// Using the existing types from api.ts
 
 const DocentesExcluidos = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // State for UI
   const [searchTerm, setSearchTerm] = useState("");
-  const [docentes, setDocentes] = useState<DocenteExcluido[]>(mockDocentesExcluidos);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const navigate = useNavigate();
+
+  // React Query hooks
+  const { data: docentes = [], isLoading, error } = useQuery({
+    queryKey: ["docentes-trashed"],
+    queryFn: getTrashedDocentes,
+  });
+
+  // Mutation for restore
+  const restoreMutation = useMutation({
+    mutationFn: restoreDocente,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["docentes-trashed"] });
+      queryClient.invalidateQueries({ queryKey: ["docentes"] });
+    },
+  });
 
   const filteredDocentes = docentes.filter(docente =>
     docente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,8 +50,8 @@ const DocentesExcluidos = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentDocentes = filteredDocentes.slice(startIndex, endIndex);
 
-  const handleRecover = (id: string) => {
-    setDocentes(prev => prev.filter(d => d.id !== id));
+  const handleRecover = (id: number) => {
+    restoreMutation.mutate(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -142,51 +131,68 @@ const DocentesExcluidos = () => {
                           <TableHead className="font-bold text-foreground">Nome</TableHead>
                           <TableHead className="font-bold text-foreground">Email</TableHead>
                           <TableHead className="font-bold text-foreground">Linha de Pesquisa</TableHead>
+                          <TableHead className="w-12 font-bold text-foreground">Adm</TableHead>
                           <TableHead className="font-bold text-foreground">Data Exclusão</TableHead>
                           <TableHead className="w-12 font-bold text-foreground">Rec</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentDocentes.map((docente) => (
-                          <TableRow key={docente.id}>
-                            <TableCell className="font-medium">{docente.nome}</TableCell>
-                            <TableCell>{docente.email}</TableCell>
-                            <TableCell>{docente.linhaPesquisa}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {docente.dataExclusao}
-                            </TableCell>
-                            <TableCell>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="outline" size="icon" className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600">
-                                    <RotateCcw className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Confirmar recuperação</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Tem certeza que deseja recuperar o docente &quot;{docente.nome}&quot;? 
-                                      Este registro será restaurado e voltará a aparecer na lista principal.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleRecover(docente.id)}>
-                                      Recuperar
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                              Carregando docentes excluídos...
                             </TableCell>
                           </TableRow>
-                        ))}
-                        {currentDocentes.length === 0 && (
+                        ) : error ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center py-8 text-red-500">
+                              Erro ao carregar docentes excluídos
+                            </TableCell>
+                          </TableRow>
+                        ) : currentDocentes.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Nenhum docente encontrado" : "Nenhum registro excluído"}
                             </TableCell>
                           </TableRow>
+                        ) : (
+                          currentDocentes.map((docente) => (
+                            <TableRow key={docente.id}>
+                              <TableCell className="font-medium">{docente.nome}</TableCell>
+                              <TableCell>{docente.email}</TableCell>
+                              <TableCell>{docente.linhaPesquisa}</TableCell>
+                              <TableCell className="text-center">
+                                {docente.is_admin && <User className="w-4 h-4 mx-auto text-blue-600" />}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {docente.dataExclusao}
+                              </TableCell>
+                              <TableCell>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="icon" className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600">
+                                      <RotateCcw className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Confirmar recuperação</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Tem certeza que deseja recuperar o docente &quot;{docente.nome}&quot;?
+                                        Este registro será restaurado e voltará a aparecer na lista principal.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleRecover(docente.id)}>
+                                        Recuperar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </TableCell>
+                            </TableRow>
+                          ))
                         )}
                       </TableBody>
                     </Table>
