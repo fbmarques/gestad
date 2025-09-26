@@ -124,6 +124,11 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   return response.data.user;
 };
 
+export const getUserAcademicLevels = async (): Promise<string[]> => {
+  const response = await api.get<{ levels: string[] }>('/api/user/academic-levels');
+  return response.data.levels;
+};
+
 export const updateUserTheme = async (theme: boolean): Promise<boolean> => {
   const response = await api.put<ThemeUpdateResponse>('/api/user/theme', { theme });
   return response.data.theme;

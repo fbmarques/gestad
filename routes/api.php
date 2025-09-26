@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgencyController;
+use App\Http\Controllers\Api\AcademicBondController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DiscenteController;
@@ -22,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/roles', [ProfileController::class, 'getUserRoles']);
     Route::get('/user/profile', [ProfileController::class, 'getUserProfile']);
     Route::put('/user/theme', [ProfileController::class, 'updateTheme']);
+    Route::get('/user/academic-levels', [AcademicBondController::class, 'getUserLevels']);
 
     // Stats routes (accessible by admin and docente)
     Route::get('/stats/counts', [StatsController::class, 'getCounts']);

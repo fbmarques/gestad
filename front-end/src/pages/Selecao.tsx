@@ -3,20 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Users, BookOpen, GraduationCap, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
-import { getUserRoles, Role } from "@/lib/api";
+import { getUserRoles, getUserAcademicLevels, Role } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
 
 const Selecao = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
   const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [academicLevels, setAcademicLevels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadUserRoles = async () => {
+    const loadUserData = async () => {
       try {
         const roles = await getUserRoles();
         setUserRoles(roles);
+
+        // If user is discente (role type 3), also load academic levels
+        const isDiscente = roles.some(role => role.slug === 'discente');
+        if (isDiscente) {
+          try {
+            const levels = await getUserAcademicLevels();
+            setAcademicLevels(levels);
+          } catch (levelError) {
+            console.error('Error loading academic levels:', levelError);
+            // If academic levels can't be loaded, set empty array (no cards will show)
+            setAcademicLevels([]);
+          }
+        }
       } catch (error) {
         console.error('Error loading user roles:', error);
         // Redirect to login if unauthorized
@@ -26,7 +40,7 @@ const Selecao = () => {
       }
     };
 
-    loadUserRoles();
+    loadUserData();
   }, [navigate]);
 
   const allProfileOptions = [
@@ -66,7 +80,26 @@ const Selecao = () => {
 
   // Filter profile options based on user roles
   const profileOptions = allProfileOptions.filter(option => {
-    return userRoles.some(role => role.slug === option.requiredRole);
+    // For non-discente roles, use the original logic
+    if (option.requiredRole !== 'discente') {
+      return userRoles.some(role => role.slug === option.requiredRole);
+    }
+
+    // For discente role, check if user has the role AND has the appropriate academic level
+    const hasDiscenteRole = userRoles.some(role => role.slug === 'discente');
+    if (!hasDiscenteRole) {
+      return false;
+    }
+
+    // Check academic levels for discente cards
+    if (option.title === 'Mestrado') {
+      return academicLevels.includes('master');
+    }
+    if (option.title === 'Doutorado') {
+      return academicLevels.includes('doctorate');
+    }
+
+    return false;
   });
 
   return (
