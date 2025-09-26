@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password');
             $table->string('lattes_url')->nullable();
             $table->string('orcid')->nullable();
-            $table->foreignId('research_line_id')->nullable()->constrained();
+            $table->foreignId('research_line_id')->nullable();
             $table->text('observation')->nullable();
             $table->boolean('theme')->default(1);
             $table->rememberToken();

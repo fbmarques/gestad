@@ -19,10 +19,6 @@ return new class extends Migration
             $table->softDeletes();
             $table->timestamps();
         });
-
-        Schema::table('research_lines', function (Blueprint $table) {
-            $table->foreign('coordinator_id')->references('id')->on('users')->onDelete('set null');
-        });
     }
 
     /**
