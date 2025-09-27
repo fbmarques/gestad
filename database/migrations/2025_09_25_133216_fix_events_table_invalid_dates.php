@@ -12,13 +12,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Fix any invalid dates in the events table before the problematic migration runs
-        DB::statement("UPDATE events SET start_date = NULL WHERE start_date = '0000-00-00' OR start_date = ''");
-        DB::statement("UPDATE events SET end_date = NULL WHERE end_date = '0000-00-00' OR end_date = ''");
+        // Fix any invalid dates in the events table before rollback operations
+        // These fields were created in the original migration but will be removed later
+        // During rollback, they need to be restored temporarily but invalid dates cause errors
 
-        // Also fix any other potential invalid date formats
-        DB::statement("UPDATE events SET start_date = NULL WHERE start_date IS NOT NULL AND start_date < '1900-01-01'");
-        DB::statement("UPDATE events SET end_date = NULL WHERE end_date IS NOT NULL AND end_date < '1900-01-01'");
+        if (Schema::hasColumn('events', 'start_date')) {
+            DB::statement("UPDATE events SET start_date = NULL WHERE start_date = '0000-00-00' OR start_date = ''");
+            DB::statement("UPDATE events SET start_date = NULL WHERE start_date IS NOT NULL AND start_date < '1900-01-01'");
+        }
+
+        if (Schema::hasColumn('events', 'end_date')) {
+            DB::statement("UPDATE events SET end_date = NULL WHERE end_date = '0000-00-00' OR end_date = ''");
+            DB::statement("UPDATE events SET end_date = NULL WHERE end_date IS NOT NULL AND end_date < '1900-01-01'");
+        }
     }
 
     /**
