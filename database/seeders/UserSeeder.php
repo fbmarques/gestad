@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
         $docentes = [
             [
                 'name' => 'Prof. Dr. Carlos Alberto Silva',
-                'email' => 'carlos.silva@ppgci.edu.br',
+                'email' => 'carlos.silva@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/1234567890123456',
@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Profa. Dra. Maria Helena Costa',
-                'email' => 'maria.costa@ppgci.edu.br',
+                'email' => 'maria.costa@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/2345678901234567',
@@ -47,7 +47,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Prof. Dr. João Santos Oliveira',
-                'email' => 'joao.oliveira@ppgci.edu.br',
+                'email' => 'joao.oliveira@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/3456789012345678',
@@ -56,7 +56,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Profa. Dra. Ana Paula Ferreira',
-                'email' => 'ana.ferreira@ppgci.edu.br',
+                'email' => 'ana.ferreira@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/4567890123456789',
@@ -65,7 +65,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Prof. Dr. Roberto Lima Pereira',
-                'email' => 'roberto.pereira@ppgci.edu.br',
+                'email' => 'roberto.pereira@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/5678901234567890',
@@ -74,7 +74,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Profa. Dra. Luciana Barbosa',
-                'email' => 'luciana.barbosa@ppgci.edu.br',
+                'email' => 'luciana.barbosa@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/6789012345678901',
@@ -83,7 +83,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Prof. Dr. Fernando Rodrigues',
-                'email' => 'fernando.rodrigues@ppgci.edu.br',
+                'email' => 'fernando.rodrigues@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/7890123456789012',
@@ -92,7 +92,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Profa. Dra. Patrícia Almeida',
-                'email' => 'patricia.almeida@ppgci.edu.br',
+                'email' => 'patricia.almeida@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/8901234567890123',
@@ -101,7 +101,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Prof. Dr. Marcos Vinícius Souza',
-                'email' => 'marcos.souza@ppgci.edu.br',
+                'email' => 'marcos.souza@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/9012345678901234',
@@ -110,7 +110,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Profa. Dra. Silvia Regina Martins',
-                'email' => 'silvia.martins@ppgci.edu.br',
+                'email' => 'silvia.martins@gestad.com.br',
                 'password' => '123321',
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/0123456789012345',
@@ -123,152 +123,152 @@ class UserSeeder extends Seeder
         $discentes = [
             [
                 'name' => 'Amanda Silva Santos',
-                'email' => 'amanda.santos@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'amanda.santos@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/1111111111111111',
                 'observation' => 'Mestranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Bruno Costa Lima',
-                'email' => 'bruno.lima@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'bruno.lima@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/2222222222222222',
                 'observation' => 'Doutorando em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Carla Ferreira Oliveira',
-                'email' => 'carla.oliveira@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'carla.oliveira@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/3333333333333333',
                 'observation' => 'Mestranda em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Daniel Rodrigues Pereira',
-                'email' => 'daniel.pereira@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'daniel.pereira@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Eduarda Almeida Barbosa',
-                'email' => 'eduarda.barbosa@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'eduarda.barbosa@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/4444444444444444',
                 'observation' => 'Doutoranda em Ciência da Informação - 3º ano'
             ],
             [
                 'name' => 'Felipe Souza Martins',
-                'email' => 'felipe.martins@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'felipe.martins@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Gabriela Lima Costa',
-                'email' => 'gabriela.costa@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'gabriela.costa@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/5555555555555555',
                 'observation' => 'Doutoranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Henrique Santos Silva',
-                'email' => 'henrique.silva@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'henrique.silva@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Isabela Oliveira Ferreira',
-                'email' => 'isabela.ferreira@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'isabela.ferreira@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/6666666666666666',
                 'observation' => 'Mestranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'João Pedro Barbosa',
-                'email' => 'joao.barbosa@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'joao.barbosa@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Doutorando em Ciência da Informação - 4º ano'
             ],
             [
                 'name' => 'Larissa Pereira Santos',
-                'email' => 'larissa.santos@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'larissa.santos@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/7777777777777777',
                 'observation' => 'Mestranda em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Matheus Costa Rodrigues',
-                'email' => 'matheus.rodrigues@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'matheus.rodrigues@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Natália Silva Almeida',
-                'email' => 'natalia.almeida@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'natalia.almeida@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/8888888888888888',
                 'observation' => 'Doutoranda em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Otávio Lima Souza',
-                'email' => 'otavio.souza@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'otavio.souza@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Priscila Martins Oliveira',
-                'email' => 'priscila.oliveira@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'priscila.oliveira@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/9999999999999999',
                 'observation' => 'Mestranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Rafael Ferreira Lima',
-                'email' => 'rafael.lima@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'rafael.lima@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Doutorando em Ciência da Informação - 3º ano'
             ],
             [
                 'name' => 'Sofia Barbosa Costa',
-                'email' => 'sofia.costa@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'sofia.costa@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/1010101010101010',
                 'observation' => 'Mestranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Thiago Santos Pereira',
-                'email' => 'thiago.pereira@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'thiago.pereira@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 2º ano'
             ],
             [
                 'name' => 'Vanessa Almeida Silva',
-                'email' => 'vanessa.silva@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'vanessa.silva@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'lattes_url' => 'http://lattes.cnpq.br/1212121212121212',
                 'observation' => 'Doutoranda em Ciência da Informação - 1º ano'
             ],
             [
                 'name' => 'Wagner Oliveira Rodrigues',
-                'email' => 'wagner.rodrigues@ppgci.edu.br',
-                'password' => '123321',
+                'email' => 'wagner.rodrigues@gestad.com.br',
+                'password' => '12345678',
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 1º ano'
             ],
