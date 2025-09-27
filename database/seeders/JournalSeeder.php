@@ -12,8 +12,8 @@ class JournalSeeder extends Seeder
      */
     public function run(): void
     {
-        // Truncate table to avoid duplicates
-        Journal::truncate();
+        // Delete all records to avoid duplicates
+        Journal::query()->delete();
 
         $csvFile = database_path('seeders/periodicos_corrigido.csv');
 
@@ -66,15 +66,15 @@ class JournalSeeder extends Seeder
 
             // Insert in batches of 100
             if ($count % 100 === 0) {
-                Journal::insert($journals);
+                Journal::upsert($journals, ['issn'], ['name', 'institution', 'qualis', 'type', 'description', 'updated_at']);
                 $journals = [];
-                $this->command->info("Inserted {$count} journals...");
+                $this->command->info("Processed {$count} journals...");
             }
         }
 
         // Insert remaining journals
         if (! empty($journals)) {
-            Journal::insert($journals);
+            Journal::upsert($journals, ['issn'], ['name', 'institution', 'qualis', 'type', 'description', 'updated_at']);
         }
 
         fclose($handle);
