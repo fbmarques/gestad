@@ -13,13 +13,10 @@ return new class extends Migration
     {
         Schema::create('events', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->text('description')->nullable();
-            $table->date('start_date');
-            $table->date('end_date')->nullable();
-            $table->string('location')->nullable();
-            $table->string('type'); // enum validado na aplicação
-            $table->string('nature'); // enum validado na aplicação
+            $table->string('nome');
+            $table->string('alias');
+            $table->string('tipo'); // enum validado na aplicação
+            $table->string('natureza'); // enum validado na aplicação
             $table->softDeletes();
             $table->timestamps();
         });
