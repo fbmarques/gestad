@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('advisor_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('agency_id')->constrained('agencies')->onDelete('cascade');
+            $table->foreignId('agency_id')->nullable()->constrained('agencies')->onDelete('set null');
             $table->foreignId('research_line_id')->constrained('research_lines')->onDelete('cascade');
             $table->enum('level', ['graduation', 'master', 'doctorate', 'post-doctorate']);
             $table->enum('status', ['active', 'inactive', 'completed', 'suspended']);
