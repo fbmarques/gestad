@@ -13,64 +13,49 @@ class ResearchLineSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get a docente to be coordinator (if exists)
-        $docente = User::whereHas('roles', function ($query) {
-            $query->where('role_id', 2);
-        })->first();
+        // Get docentes to be coordinators - specific coordinators for each line
+        $docentes = User::whereHas('roles', function ($query) {
+            $query->where('slug', 'docente');
+        })->limit(5)->get();
 
         $researchLines = [
             [
-                'name' => 'Inteligência Artificial',
-                'alias' => 'IA',
-                'description' => 'Pesquisa em algoritmos e técnicas de inteligência artificial',
-                'coordinator_id' => $docente?->id,
+                'name' => 'Gestão da Informação e do Conhecimento',
+                'alias' => 'GIC',
+                'description' => 'Estudos sobre organização, gestão e uso estratégico da informação e conhecimento em organizações. Inclui sistemas de informação, gestão do conhecimento organizacional, inteligência competitiva e arquitetura da informação.',
+                'coordinator_id' => $docentes->get(0)?->id,
             ],
             [
-                'name' => 'Sistemas Distribuídos',
-                'alias' => 'SD',
-                'description' => 'Estudo de sistemas distribuídos e computação paralela',
-                'coordinator_id' => null,
+                'name' => 'Organização e Representação da Informação',
+                'alias' => 'ORI',
+                'description' => 'Pesquisas em catalogação, classificação, indexação, linguagens documentárias, ontologias, taxonomias e metadados. Foca nos processos de organização e representação do conhecimento para recuperação da informação.',
+                'coordinator_id' => $docentes->get(1)?->id,
             ],
             [
-                'name' => 'Engenharia de Software',
-                'alias' => 'ES',
-                'description' => 'Métodos e práticas de desenvolvimento de software',
-                'coordinator_id' => null,
+                'name' => 'Mediação e Apropriação da Informação',
+                'alias' => 'MAI',
+                'description' => 'Investigações sobre os processos de mediação da informação, competência informacional, letramento informacional, apropriação social da informação e estudos de usuários da informação.',
+                'coordinator_id' => $docentes->get(2)?->id,
             ],
             [
-                'name' => 'Banco de Dados',
-                'alias' => 'BD',
-                'description' => 'Sistemas de gerenciamento de banco de dados e mineração de dados',
-                'coordinator_id' => $docente?->id,
+                'name' => 'Estudos Métricos da Informação',
+                'alias' => 'EMI',
+                'description' => 'Aplicação de métodos quantitativos para análise da produção, comunicação e uso da informação científica. Inclui bibliometria, cientometria, webometria e altmetria.',
+                'coordinator_id' => $docentes->get(3)?->id,
             ],
             [
-                'name' => 'Segurança da Informação',
-                'alias' => 'SI',
-                'description' => 'Criptografia, segurança de redes e proteção de dados',
-                'coordinator_id' => null,
-            ],
-            [
-                'name' => 'Computação Gráfica',
-                'alias' => 'CG',
-                'description' => 'Processamento de imagens e visualização computacional',
-                'coordinator_id' => null,
-            ],
-            [
-                'name' => 'Redes de Computadores',
-                'alias' => 'RC',
-                'description' => 'Protocolos de rede, comunicação e infraestrutura',
-                'coordinator_id' => null,
-            ],
-            [
-                'name' => 'Interação Humano-Computador',
-                'alias' => 'IHC',
-                'description' => 'Usabilidade, experiência do usuário e interfaces',
-                'coordinator_id' => null,
+                'name' => 'Tecnologia da Informação e Sociedade',
+                'alias' => 'TIS',
+                'description' => 'Estudos sobre o impacto das tecnologias da informação na sociedade, incluindo inclusão digital, governança eletrônica, preservação digital, repositórios digitais e acesso aberto à informação científica.',
+                'coordinator_id' => $docentes->get(4)?->id,
             ],
         ];
 
         foreach ($researchLines as $line) {
-            ResearchLine::create($line);
+            ResearchLine::firstOrCreate(
+                ['alias' => $line['alias']],
+                $line
+            );
         }
     }
 }
