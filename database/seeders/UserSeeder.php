@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\ResearchLine;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -26,6 +27,7 @@ class UserSeeder extends Seeder
         ];
 
         // 10 Docentes da área de Ciência da Informação
+        // research_line_id será definido após as linhas serem criadas
         $docentes = [
             [
                 'name' => 'Prof. Dr. Carlos Alberto Silva',
@@ -34,7 +36,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/1234567890123456',
                 'orcid' => '0000-0000-0000-0001',
-                'observation' => 'Especialista em Gestão da Informação e Sistemas de Informação'
+                'observation' => 'Especialista em Gestão da Informação e Sistemas de Informação',
+                'research_line_alias' => 'GIC' // Gestão da Informação e do Conhecimento
             ],
             [
                 'name' => 'Profa. Dra. Maria Helena Costa',
@@ -43,7 +46,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/2345678901234567',
                 'orcid' => '0000-0000-0000-0002',
-                'observation' => 'Pesquisadora em Organização e Representação da Informação'
+                'observation' => 'Pesquisadora em Organização e Representação da Informação',
+                'research_line_alias' => 'ORI' // Organização e Representação da Informação
             ],
             [
                 'name' => 'Prof. Dr. João Santos Oliveira',
@@ -52,7 +56,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/3456789012345678',
                 'orcid' => '0000-0000-0000-0003',
-                'observation' => 'Especialista em Biblioteconomia e Competência Informacional'
+                'observation' => 'Especialista em Biblioteconomia e Competência Informacional',
+                'research_line_alias' => 'MAI' // Mediação e Apropriação da Informação
             ],
             [
                 'name' => 'Profa. Dra. Ana Paula Ferreira',
@@ -61,7 +66,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/4567890123456789',
                 'orcid' => '0000-0000-0000-0004',
-                'observation' => 'Pesquisadora em Estudos Métricos da Informação'
+                'observation' => 'Pesquisadora em Estudos Métricos da Informação',
+                'research_line_alias' => 'EMI' // Estudos Métricos da Informação
             ],
             [
                 'name' => 'Prof. Dr. Roberto Lima Pereira',
@@ -70,7 +76,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/5678901234567890',
                 'orcid' => '0000-0000-0000-0005',
-                'observation' => 'Especialista em Tecnologia da Informação e Arquivologia'
+                'observation' => 'Especialista em Tecnologia da Informação e Arquivologia',
+                'research_line_alias' => 'TIS' // Tecnologia da Informação e Sociedade
             ],
             [
                 'name' => 'Profa. Dra. Luciana Barbosa',
@@ -79,7 +86,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/6789012345678901',
                 'orcid' => '0000-0000-0000-0006',
-                'observation' => 'Pesquisadora em Mediação e Apropriação da Informação'
+                'observation' => 'Pesquisadora em Mediação e Apropriação da Informação',
+                'research_line_alias' => 'MAI' // Mediação e Apropriação da Informação
             ],
             [
                 'name' => 'Prof. Dr. Fernando Rodrigues',
@@ -88,7 +96,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/7890123456789012',
                 'orcid' => '0000-0000-0000-0007',
-                'observation' => 'Especialista em Epistemologia da Ciência da Informação'
+                'observation' => 'Especialista em Epistemologia da Ciência da Informação',
+                'research_line_alias' => 'GIC' // Gestão da Informação e do Conhecimento
             ],
             [
                 'name' => 'Profa. Dra. Patrícia Almeida',
@@ -97,7 +106,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/8901234567890123',
                 'orcid' => '0000-0000-0000-0008',
-                'observation' => 'Pesquisadora em Informação e Sociedade'
+                'observation' => 'Pesquisadora em Informação e Sociedade',
+                'research_line_alias' => 'TIS' // Tecnologia da Informação e Sociedade
             ],
             [
                 'name' => 'Prof. Dr. Marcos Vinícius Souza',
@@ -106,7 +116,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/9012345678901234',
                 'orcid' => '0000-0000-0000-0009',
-                'observation' => 'Especialista em Recuperação e Visualização da Informação'
+                'observation' => 'Especialista em Recuperação e Visualização da Informação',
+                'research_line_alias' => 'ORI' // Organização e Representação da Informação
             ],
             [
                 'name' => 'Profa. Dra. Silvia Regina Martins',
@@ -115,7 +126,8 @@ class UserSeeder extends Seeder
                 'role_slug' => 'docente',
                 'lattes_url' => 'http://lattes.cnpq.br/0123456789012345',
                 'orcid' => '0000-0000-0000-0010',
-                'observation' => 'Pesquisadora em Gestão do Conhecimento e Inovação'
+                'observation' => 'Pesquisadora em Gestão do Conhecimento e Inovação',
+                'research_line_alias' => 'EMI' // Estudos Métricos da Informação
             ],
         ];
 
@@ -274,10 +286,41 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        // Criar todos os usuários
-        $allUsers = array_merge($adminUsers, $docentes, $discentes);
+        // Criar usuários administrativos
+        foreach ($adminUsers as $userData) {
+            $roleSlug = $userData['role_slug'];
+            unset($userData['role_slug']);
 
-        foreach ($allUsers as $userData) {
+            $user = User::create($userData);
+
+            $role = Role::where('slug', $roleSlug)->first();
+            if ($role) {
+                $user->roles()->attach($role->id);
+            }
+        }
+
+        // Criar docentes com associação às linhas de pesquisa
+        foreach ($docentes as $userData) {
+            $roleSlug = $userData['role_slug'];
+            $researchLineAlias = $userData['research_line_alias'];
+            unset($userData['role_slug'], $userData['research_line_alias']);
+
+            // Buscar a linha de pesquisa pelo alias
+            $researchLine = ResearchLine::where('alias', $researchLineAlias)->first();
+            if ($researchLine) {
+                $userData['research_line_id'] = $researchLine->id;
+            }
+
+            $user = User::create($userData);
+
+            $role = Role::where('slug', $roleSlug)->first();
+            if ($role) {
+                $user->roles()->attach($role->id);
+            }
+        }
+
+        // Criar discentes (sem linha de pesquisa específica)
+        foreach ($discentes as $userData) {
             $roleSlug = $userData['role_slug'];
             unset($userData['role_slug']);
 
