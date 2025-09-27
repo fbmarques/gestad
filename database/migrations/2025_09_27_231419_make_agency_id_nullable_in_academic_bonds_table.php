@@ -12,10 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('academic_bonds', function (Blueprint $table) {
-            // Drop foreign key constraint first
-            $table->dropForeign(['agency_id']);
+        // Check if foreign key exists before trying to drop it
+        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_NAME = 'academic_bonds'
+            AND COLUMN_NAME = 'agency_id'
+            AND CONSTRAINT_NAME LIKE '%foreign%'
+            AND TABLE_SCHEMA = DATABASE()");
 
+        if (!empty($foreignKeys)) {
+            Schema::table('academic_bonds', function (Blueprint $table) {
+                $table->dropForeign(['agency_id']);
+            });
+        }
+
+        Schema::table('academic_bonds', function (Blueprint $table) {
             // Make the column nullable
             $table->foreignId('agency_id')->nullable()->change();
 
@@ -29,10 +39,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('academic_bonds', function (Blueprint $table) {
-            // Drop the nullable foreign key
-            $table->dropForeign(['agency_id']);
-        });
+        // Check if foreign key exists before trying to drop it
+        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_NAME = 'academic_bonds'
+            AND COLUMN_NAME = 'agency_id'
+            AND CONSTRAINT_NAME LIKE '%foreign%'
+            AND TABLE_SCHEMA = DATABASE()");
+
+        if (!empty($foreignKeys)) {
+            Schema::table('academic_bonds', function (Blueprint $table) {
+                $table->dropForeign(['agency_id']);
+            });
+        }
 
         // First, assign a default agency to any null values before making NOT NULL
         $defaultAgency = DB::table('agencies')->first();
