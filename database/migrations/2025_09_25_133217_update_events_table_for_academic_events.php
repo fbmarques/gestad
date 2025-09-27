@@ -29,17 +29,39 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('events', function (Blueprint $table) {
-            // Reverter as mudanças
-            $table->renameColumn('nome', 'title');
-            $table->dropColumn('alias');
-            $table->renameColumn('tipo', 'type');
-            $table->renameColumn('natureza', 'nature');
+            // Reverter as mudanças apenas se as colunas existirem
+            if (Schema::hasColumn('events', 'nome')) {
+                $table->renameColumn('nome', 'title');
+            }
 
-            // Restaurar campos removidos
-            $table->text('description')->nullable();
-            $table->date('start_date');
-            $table->date('end_date')->nullable();
-            $table->string('location')->nullable();
+            if (Schema::hasColumn('events', 'alias')) {
+                $table->dropColumn('alias');
+            }
+
+            if (Schema::hasColumn('events', 'tipo')) {
+                $table->renameColumn('tipo', 'type');
+            }
+
+            if (Schema::hasColumn('events', 'natureza')) {
+                $table->renameColumn('natureza', 'nature');
+            }
+
+            // Restaurar campos removidos apenas se não existirem
+            if (!Schema::hasColumn('events', 'description')) {
+                $table->text('description')->nullable();
+            }
+
+            if (!Schema::hasColumn('events', 'start_date')) {
+                $table->date('start_date');
+            }
+
+            if (!Schema::hasColumn('events', 'end_date')) {
+                $table->date('end_date')->nullable();
+            }
+
+            if (!Schema::hasColumn('events', 'location')) {
+                $table->string('location')->nullable();
+            }
         });
     }
 };
