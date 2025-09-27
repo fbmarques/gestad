@@ -19,6 +19,7 @@ import Docentes from "./pages/Docentes";
 import DocentesExcluidos from "./pages/DocentesExcluidos";
 import Discentes from "./pages/Discentes";
 import DiscentesExcluidos from "./pages/DiscentesExcluidos";
+import Discente from "./pages/Discente";
 
 const queryClient = new QueryClient();
 
@@ -33,7 +34,7 @@ function App() {
             <Route path="/selecao" element={<Selecao />} />
             <Route path="/administrativo" element={<Administrativo />} />
             <Route path="/docente" element={<div>Docente</div>} />
-            <Route path="/discente" element={<div>Discente</div>} />
+            <Route path="/discente" element={<Discente />} />
             <Route path="/linhaspesquisa" element={<LinhasPesquisa />} />
             <Route path="/linhapesquisa" element={<LinhasPesquisa />} />
             <Route path="/linhaspesquisa-excluidas" element={<LinhasPesquisaExcluidas />} />

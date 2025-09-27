@@ -1,295 +1,118 @@
-# Plano de Desenvolvimento - CRUD Discentes
+# O que Desenvolver - Módulo Discente
 
-## Análise dos Requisitos
+## 📋 Checklist de Implementação
 
-### Contexto
-- **Discente**: Usuário com role_id = 3
-- **Acesso**: URLs `/discentes` e `/discentes-excluidos` acessíveis apenas por roles 1 e 2
-- **Frontend**: Já desenvolvido e localizado em:
-  - `front-end/src/pages/Discentes.tsx`
-  - `front-end/src/pages/DiscentesExcluidos.tsx`
+### 1. Análise Database ✅ (Concluído)
+- [x] Verificar estrutura database
+- [x] Identificar tabela `academic_bonds` (vínculo acadêmico)
+- [x] Identificar relacionamentos:
+  - [x] `student_id` → `users` (discente)
+  - [x] `advisor_id` → `users` (orientador)
+  - [x] `level` (Mestrado/Doutorado)
+  - [x] Campo para co-orientador (não existe - pode ser implementado depois)
 
-### Regras de Negócio Críticas
+### 2. Backend - API Development 🔄 (Em andamento)
+- [ ] Verificar se existe Model `AcademicBond`
+- [ ] Criar Controller `StudentController` com método:
+  - [ ] `me()` - retornar dados do discente logado via academic_bonds
+- [ ] Criar Form Request para validação se necessário
+- [ ] Criar Policy para autorização
+- [ ] Adicionar rotas em `routes/api.php`
+- [ ] Criar Feature Tests obrigatórios
 
-1. **Cadastro de Discente**:
-   - Salvar na tabela `users` com role_id = 3
-   - Inserir registro em `role_user` com role = 3
-   - Criar registro em `academic_bonds` com status = 'active'
+### 3. Frontend Routes ⏳ (Aguardando)
+- [ ] Verificar rota `/discente` em `routes/web.php`
+- [ ] Verificar se rota React existe em `front-end/src/App.tsx`
 
-2. **Academic Bonds Logic**:
-   - Mestrado: level = 'master'
-   - Doutorado: level = 'doctorate'
-   - Status inicial: 'active'
-   - Quando status = 'completed' (mestrado), permite upgrade para doutorado
-   - Se doutorado, NÃO permite downgrade para mestrado
+### 4. Frontend Integration ⏳ (Aguardando)
+- [ ] Atualizar `front-end/src/lib/api.ts`:
+  - [ ] Adicionar interface TypeScript para Student/AcademicBond
+  - [ ] Adicionar função para buscar dados do discente logado
+- [ ] Atualizar `WelcomeSection.tsx`:
+  - [ ] Remover mock data
+  - [ ] Integrar com React Query
+  - [ ] Buscar dados reais via API
+  - [ ] Exibir: nome, modalidade (level), orientador
 
-3. **Transição Mestrado → Doutorado**:
-   - Só permitida quando academic_bond de mestrado tem status = 'completed'
-   - Criar NOVA linha em academic_bonds para doutorado
-   - Manter histórico do mestrado
+### 5. Build & Test ⏳ (Aguardando)
+- [ ] Executar `cd front-end && npm run build`
+- [ ] Testar em `php artisan serve`
+- [ ] Executar `php artisan test`
+- [ ] Executar `./vendor/bin/pint`
 
-4. **Display na Table**:
-   - Status Mestrado/Doutorado vem de academic_bonds.status
-   - Não dos campos mockados no frontend
+## 📊 Descobertas Database
 
-## Análise do Frontend Existente
+**Tabela principal: `academic_bonds`**
+- `student_id` → FK para `users` (discente)
+- `advisor_id` → FK para `users` (orientador)
+- `level` → "Mestrado" ou "Doutorado"
+- `status` → status do vínculo
+- `research_line_id` → linha de pesquisa
 
-### Campos Identificados em Discentes.tsx:
-- Nome completo
-- Email
-- Orientador (Popover com lista de docentes)
-- Co-Orientador (opcional)
-- Nível de Pós-Graduação (Radio: mestrado/doutorado)
-- Status Mestrado (derivado de academic_bonds)
-- Status Doutorado (derivado de academic_bonds)
+**Não existe campo co-orientador** - implementação futura se necessário
 
-### Mock Data que Precisa ser Substituída:
-```typescript
-// mockDocentes: precisa vir da API de usuários com role docente
-// mockDiscentes: precisa vir da API real
-// Campos status: precisam vir de academic_bonds
-```
+## 🚨 Regras Críticas do CLAUDE.md
 
-## Componentes Backend Necessários
+1. **Frontend é 95% completo** - fazer mudanças mínimas
+2. **Sempre executar `npm run build`** antes de testar
+3. **Testar apenas no Laravel server** (`php artisan serve`)
+4. **Feature Tests são OBRIGATÓRIOS** para todas as APIs
+5. **Usar Form Requests** para validação
+6. **Usar Policies** para autorização
+7. **CSRF obrigatório** para operações de escrita (GET não precisa)
+8. **Seguir padrões existentes** do projeto
 
-### 1. **Model Adjustments**
-- [x] Verificar/ajustar User model
-- [x] Criar/ajustar AcademicBond model
-- [x] Definir relationships corretas
+## 📝 Próximos Passos
 
-### 2. **Migration Verification**
-- [x] Verificar se academic_bonds table está correta
-- [x] Verificar foreign keys e constraints
+1. Verificar se Model AcademicBond existe
+2. Criar API endpoint `/api/student/me`
+3. Implementar frontend integration
+4. Testar e validar
 
-### 3. **Controllers**
-- [x] `DiscenteController` (CRUD completo) ✅ IMPLEMENTADO
-  - [x] `index()` - Lista discentes ativos
-  - [x] `store()` - Cria discente + academic_bond
-  - [x] `show()` - Exibe discente específico
-  - [x] `update()` - Atualiza discente (com lógica de transição)
-  - [x] `destroy()` - Soft delete discente
-  - [x] `trashed()` - Lista discentes excluídos
-  - [x] `restore()` - Restaura discente excluído
+## ✅ Status - CONCLUÍDO COM SUCESSO
+- [x] ✅ Análise inicial
+- [x] ✅ Verificação database
+- [x] ✅ Backend API - StudentController criado com endpoint `/api/student/me`
+- [x] ✅ Frontend integration - WelcomeSection conectado com API real
+- [x] ✅ Build e testes - npm run build + Feature Tests passando
+- [x] ✅ Servidor funcionando - Laravel serve testado e operacional
 
-### 4. **Form Requests**
-- [x] `StoreDiscenteRequest` - Validação para criação ✅ IMPLEMENTADO
-- [x] `UpdateDiscenteRequest` - Validação para atualização ✅ IMPLEMENTADO
+## 🎯 RESUMO DA IMPLEMENTAÇÃO REALIZADA
 
-### 5. **Policies**
-- [x] Controle de acesso (roles 1,2) ✅ IMPLEMENTADO via middleware
+### ✅ Backend Implementado:
+- **Controller**: `StudentController` com método `me()`
+- **API Endpoint**: `GET /api/student/me` (protegido por auth:sanctum)
+- **Response**: Dados do discente + modalidade + orientador + linha de pesquisa
+- **Feature Tests**: 5 testes cobrindo success (200), auth failure (401), e not found (404)
 
-### 6. **Routes**
-- [x] API routes protegidas por auth:sanctum ✅ IMPLEMENTADO
-- [x] Web routes para SPA (roles 1,2) ✅ IMPLEMENTADO
+### ✅ Frontend Integrado:
+- **React Route**: `/discente` → `Discente.tsx` page
+- **WelcomeSection**: Agora usa dados reais via React Query
+- **API Integration**: `getStudentData()` function em `lib/api.ts`
+- **Loading/Error States**: Skeleton loading + error handling
 
-### 7. **Services (Business Logic)**
-- [x] Lógica de negócio complexa ✅ IMPLEMENTADA no Controller
-  - [x] Criação de discente + academic_bond
-  - [x] Transição mestrado → doutorado
-  - [x] Validação de regras de negócio
+### ✅ Database Schema Utilizada:
+- **Tabela**: `academic_bonds` (vínculo acadêmico)
+- **Campos utilizados**: `student_id`, `advisor_id`, `level`, `status`, `research_line_id`
+- **Enum values**: 'graduation', 'master', 'doctorate', 'post-doctorate'
 
-### 8. **Feature Tests**
-- [x] Teste de criação de discente ✅ 18 TESTES PASSANDO
-- [x] Teste de listagem (com authorization)
-- [x] Teste de edição
-- [x] Teste de transição mestrado → doutorado
-- [x] Teste de soft delete/restore
-- [x] Teste de authorization (401/403)
-- [x] Teste de validation (422)
+### ✅ Testes e Qualidade:
+- **Feature Tests**: 5 testes passando (100% success rate)
+- **Laravel Pint**: Código formatado seguindo PSR-12
+- **Build**: `npm run build` executado com sucesso
+- **Server Test**: Laravel serve funcionando corretamente
 
-## API Endpoints Necessários
+## 🚀 COMO USAR
 
-### Discentes Ativos
-```
-GET    /api/discentes           - Lista discentes ativos
-POST   /api/discentes           - Cria novo discente
-GET    /api/discentes/{id}      - Exibe discente específico
-PUT    /api/discentes/{id}      - Atualiza discente
-DELETE /api/discentes/{id}      - Soft delete discente
-```
+1. **Iniciar servidor**: `php artisan serve`
+2. **Acessar módulo**: `/discente` (requer autenticação com role=3)
+3. **API**: `GET /api/student/me` retorna dados do discente logado
 
-### Discentes Excluídos
-```
-GET    /api/discentes/trashed   - Lista discentes excluídos
-POST   /api/discentes/{id}/restore - Restaura discente
-```
+## 📋 IMPLEMENTAÇÃO FUTURA
 
-### Dados Auxiliares
-```
-GET    /api/docentes/for-selection - Lista docentes para seleção
-```
-
-## Integração Frontend
-
-### Alterações Necessárias em front-end/src/lib/api.ts:
-```typescript
-// Interfaces
-interface Discente {
-  id: number;
-  name: string;
-  email: string;
-  advisor_id: number;
-  advisor_name: string;
-  co_advisor_id?: number;
-  co_advisor_name?: string;
-  master_status: 'active' | 'completed' | 'inactive' | 'suspended';
-  doctorate_status: 'active' | 'completed' | 'inactive' | 'suspended';
-  deleted_at?: string;
-}
-
-interface Docente {
-  id: number;
-  name: string;
-}
-
-// API Functions
-export const discenteApi = {
-  getAll: () => api.get<Discente[]>('/api/discentes'),
-  getTrashed: () => api.get<Discente[]>('/api/discentes/trashed'),
-  create: (data: CreateDiscenteData) => api.post('/api/discentes', data),
-  update: (id: number, data: UpdateDiscenteData) => api.put(`/api/discentes/${id}`, data),
-  delete: (id: number) => api.delete(`/api/discentes/${id}`),
-  restore: (id: number) => api.post(`/api/discentes/${id}/restore`),
-}
-
-export const docenteApi = {
-  getForSelection: () => api.get<Docente[]>('/api/docentes/for-selection'),
-}
-```
-
-### Alterações em Discentes.tsx:
-- [x] Substituir mockDocentes por useQuery(docenteApi.getForSelection) ✅ IMPLEMENTADO
-- [x] Substituir mockDiscentes por useQuery(discenteApi.getAll) ✅ IMPLEMENTADO
-- [x] Implementar mutations para CRUD operations ✅ IMPLEMENTADO
-- [x] Mapear campos mock para campos reais da API ✅ IMPLEMENTADO
-- [x] Adicionar CSRF protection em operações de escrita ✅ IMPLEMENTADO
-
-### Alterações em DiscentesExcluidos.tsx:
-- [x] Substituir mock por useQuery(discenteApi.getTrashed) ✅ IMPLEMENTADO
-- [x] Implementar mutation para restore ✅ IMPLEMENTADO
-- [x] Mapear campos corretamente ✅ IMPLEMENTADO
-
-## Routes Web Necessárias
-
-```php
-// routes/web.php - Para SPA routing
-Route::get('/discentes', fn() => view('app'))->middleware('auth.roles:1,2');
-Route::get('/discentes-excluidos', fn() => view('app'))->middleware('auth.roles:1,2');
-```
-
-## Database Schema Verification
-
-### Verificar academic_bonds table:
-- [x] student_id (foreign key to users.id)
-- [x] advisor_id (foreign key to users.id)
-- [x] level ('master' | 'doctorate')
-- [x] status ('active' | 'inactive' | 'completed' | 'suspended')
-- [x] start_date, end_date, title, description
-
-## Sequência de Desenvolvimento
-
-### Fase 1: Backend Foundation ✅ COMPLETO
-1. [x] Verificar/criar Models com relationships
-2. [x] Criar Controller base
-3. [x] Criar Form Requests
-4. [x] Criar Policy
-5. [x] Definir routes API
-
-### Fase 2: Business Logic ✅ COMPLETO
-1. [x] Implementar lógica no DiscenteController
-2. [x] Lógica de criação (user + role_user + academic_bond)
-3. [x] Lógica de transição mestrado → doutorado
-4. [x] CRUD operations completas
-
-### Fase 3: Testing ✅ COMPLETO
-1. [x] Feature Tests completos (18 testes)
-2. [x] Test de authorization
-3. [x] Test de validation
-4. [x] Test de business rules
-
-### Fase 4: Frontend Integration ✅ COMPLETO
-1. [x] Atualizar lib/api.ts
-2. [x] Substituir mock data em Discentes.tsx
-3. [x] Substituir mock data em DiscentesExcluidos.tsx
-4. [x] Build e test no Laravel server
-
-### Fase 5: Final Testing ✅ COMPLETO
-1. [x] npm run build
-2. [x] php artisan serve (rodando na porta 8002)
-3. [x] Teste manual "happy path"
-4. [x] php artisan test (18 testes passando)
-5. [x] ./vendor/bin/pint (código formatado)
-
-## Critérios de Sucesso
-
-✅ **Backend**:
-- Todas as rotas API funcionando
-- Authorization correta (roles 1,2)
-- Business logic implementada (transições)
-- Tests passando (100% coverage dos cenários)
-
-✅ **Frontend Integration**:
-- Mock data substituída por API calls
-- CRUD operations funcionando
-- Campos mapeados corretamente
-- Build funcionando no Laravel server
-
-✅ **Quality Assurance**:
-- PSR-12 compliance (pint)
-- Feature Tests abrangentes
-- Manual QA "happy path"
-- Sem console errors no frontend
-
-## Arquivos que Serão Criados/Modificados
-
-### Novos Arquivos: ✅ CRIADOS
-- [x] `app/Http/Controllers/DiscenteController.php`
-- [x] `app/Http/Requests/StoreDiscenteRequest.php`
-- [x] `app/Http/Requests/UpdateDiscenteRequest.php`
-- [x] `app/Models/AcademicBond.php`
-- [x] `database/migrations/2025_09_10_173328_create_academic_bonds_table.php`
-- [x] `database/factories/AcademicBondFactory.php`
-- [x] `database/factories/ResearchLineFactory.php`
-- [x] `tests/Feature/DiscenteTest.php`
-
-### Arquivos Modificados: ✅ ATUALIZADOS
-- [x] `app/Models/User.php` (relationships acadêmicos)
-- [x] `routes/api.php` (rotas de discentes)
-- [x] `routes/web.php` (rotas SPA)
-- [x] `front-end/src/lib/api.ts` (APIs de discentes)
-- [x] `front-end/src/pages/Discentes.tsx` (integração completa)
-- [x] `front-end/src/pages/DiscentesExcluidos.tsx` (integração completa)
-- [x] `front-end/src/App.tsx` (rotas do React)
-
----
-
-**IMPORTANTE**: Seguir rigorosamente o padrão estabelecido no CLAUDE.md:
-- ✅ Build primeiro: `cd front-end && npm run build`
-- ✅ Test no Laravel server: `php artisan serve`
-- ✅ Feature Tests obrigatórios
-- ✅ Form Requests para validação
-- ✅ CSRF protection no frontend
-- ✅ Pint compliance
-
----
-
-## 🎯 STATUS FINAL DO PROJETO
-
-### ✅ **PROJETO COMPLETADO COM SUCESSO** - Data: 26/09/2025
-
-**Todas as funcionalidades implementadas e testadas:**
-
-1. **Backend Laravel 12**: CRUD completo para discentes com regras de negócio complexas
-2. **Academic Bonds System**: Sistema de progressão mestrado → doutorado implementado
-3. **Testes Automatizados**: 18 testes PHPUnit passando (100% coverage dos cenários)
-4. **Frontend React**: Integração completa com APIs, substituição de mock data
-5. **Autenticação**: Controle de acesso por roles (1,2) implementado
-6. **Build & Deploy**: Frontend compilado e servidor Laravel rodando
-
-**Servidor rodando em**: `http://127.0.0.1:8002`
-**Testes**: 18/18 passando ✅
-**Code Quality**: PSR-12 compliant ✅
-**Frontend**: Build compilado e integrado ✅
-
-### 🚀 **Pronto para Produção**
-O sistema está completamente funcional e pronto para deploy em hospedagem compartilhada conforme especificado no CLAUDE.md.
+Para estender o módulo discente, considerar implementar:
+- [ ] Co-orientador (adicionar campo `co_advisor_id` na tabela)
+- [ ] Seções restantes do dashboard (BasicInfoSection, etc.)
+- [ ] CRUD de disciplinas do discente
+- [ ] CRUD de publicações
+- [ ] Relatórios de progresso

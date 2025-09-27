@@ -492,6 +492,26 @@ export const resetDiscentePassword = async (id: number): Promise<void> => {
   await api.post(`/api/discentes/${id}/reset-password`);
 };
 
+// Student (Discente) Module types
+export interface StudentData {
+  id: number;
+  name: string;
+  email: string;
+  modality: string; // "Mestrado" | "Doutorado"
+  advisor: string;
+  advisor_id?: number;
+  research_line: string;
+  academic_bond: {
+    id: number;
+    level: string;
+    status: string;
+    start_date?: string;
+    end_date?: string;
+    title?: string;
+    description?: string;
+  };
+}
+
 // Stats types
 export interface StatsCountsResponse {
   discentes: number;
@@ -503,6 +523,12 @@ export interface StatsCountsResponse {
   eventos: number;
   producoes: number;
 }
+
+// Student (Discente) Module API functions
+export const getStudentData = async (): Promise<StudentData> => {
+  const response = await api.get<StudentData>('/api/student/me');
+  return response.data;
+};
 
 // Stats API functions
 export const getStatsCounts = async (): Promise<StatsCountsResponse> => {

@@ -11,6 +11,7 @@ use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResearchLineController;
 use App\Http\Controllers\StatsController;
+use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
 // Authentication routes
@@ -68,4 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/discentes/{id}/available-levels', [DiscenteController::class, 'getAvailableLevels']);
     Route::post('/discentes/{id}/reset-password', [DiscenteController::class, 'resetPassword']);
     Route::get('/docentes-dropdown', [DiscenteController::class, 'docentes']);
+
+    // Student routes (accessible by student)
+    Route::get('/student/me', [StudentController::class, 'me']);
 });
