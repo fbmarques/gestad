@@ -77,4 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/me', [StudentController::class, 'me']);
     Route::get('/student/link-period', [StudentController::class, 'getLinkPeriod']);
     Route::patch('/student/link-period', [StudentController::class, 'updateLinkPeriod']);
+    Route::get('/student/agencies', [StudentController::class, 'getAgencies']);
+    Route::get('/student/scholarship', [StudentController::class, 'getScholarship']);
+    Route::patch('/student/scholarship', [StudentController::class, 'updateScholarship']);
 });

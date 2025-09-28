@@ -1,67 +1,99 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Wallet, Building } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getStudentAgencies,
+  getUserScholarship,
+  updateUserScholarship,
+  ScholarshipAgency,
+  UserScholarship
+} from "@/lib/api";
 
 export const ScholarshipSection = () => {
-  const [isBolsista, setIsBolsista] = useState(false);
-  const [selectedAgency, setSelectedAgency] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const agencies = [
-    { id: "cnpq", name: "CNPq" },
-    { id: "capes", name: "CAPES" },
-    { id: "fapemig", name: "FAPEMIG" }
-  ];
+  // Get available agencies
+  const { data: agencies = [], isLoading: isLoadingAgencies } = useQuery<ScholarshipAgency[]>({
+    queryKey: ['student-agencies'],
+    queryFn: getStudentAgencies,
+  });
+
+  // Get current scholarship info
+  const { data: scholarshipData, isLoading: isLoadingScholarship } = useQuery<UserScholarship>({
+    queryKey: ['student-scholarship'],
+    queryFn: getUserScholarship,
+  });
+
+  const isBolsista = scholarshipData?.is_scholarship_holder || false;
+  const selectedAgency = scholarshipData?.agency;
+
+  // Mutation for updating scholarship
+  const updateScholarshipMutation = useMutation({
+    mutationFn: updateUserScholarship,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['student-scholarship'] });
+      toast({
+        title: "Sucesso",
+        description: data.message,
+      });
+    },
+    onError: (error: any) => {
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data.errors;
+        const firstError = Object.values(validationErrors)[0] as string[];
+        toast({
+          title: "Erro de validação",
+          description: firstError[0],
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Falha ao atualizar informações de bolsa",
+          variant: "destructive"
+        });
+      }
+    }
+  });
 
   const handleBolsistaToggle = async (value: boolean) => {
-    setIsBolsista(value);
-    
     if (!value) {
-      setSelectedAgency("");
+      // Remove scholarship - set agency_id to null
+      updateScholarshipMutation.mutate({ agency_id: null });
     } else {
+      // Show modal to select agency
       setIsModalOpen(true);
     }
-
-    // Simulação de salvamento
-    try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      toast({
-        title: "Sucesso",
-        description: `Status de bolsista atualizado: ${value ? "Sim" : "Não"}`
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao atualizar status",
-        variant: "destructive"
-      });
-    }
   };
 
-  const handleAgencySelect = async (agencyId: string) => {
-    setSelectedAgency(agencyId);
+  const handleAgencySelect = async (agencyId: number) => {
+    updateScholarshipMutation.mutate({ agency_id: agencyId });
     setIsModalOpen(false);
-    
-    // Simulação de salvamento
-    try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const agencyName = agencies.find(a => a.id === agencyId)?.name;
-      toast({
-        title: "Sucesso",
-        description: `Agência selecionada: ${agencyName}`
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao selecionar agência",
-        variant: "destructive"
-      });
-    }
   };
+
+  if (isLoadingScholarship || isLoadingAgencies) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Wallet className="w-5 h-5 text-primary" />
+            Informações de Bolsa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <span className="text-muted-foreground">Carregando...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-card-border">
@@ -80,6 +112,7 @@ export const ScholarshipSection = () => {
                 variant={!isBolsista ? "danger" : "outline"}
                 size="sm"
                 onClick={() => handleBolsistaToggle(false)}
+                disabled={updateScholarshipMutation.isPending}
                 className="transition-smooth"
               >
                 Não
@@ -88,6 +121,7 @@ export const ScholarshipSection = () => {
                 variant={isBolsista ? "success" : "outline"}
                 size="sm"
                 onClick={() => handleBolsistaToggle(true)}
+                disabled={updateScholarshipMutation.isPending}
                 className="transition-smooth"
               >
                 Sim
@@ -111,8 +145,9 @@ export const ScholarshipSection = () => {
                     variant="outline"
                     className="h-12 transition-smooth"
                     onClick={() => handleAgencySelect(agency.id)}
+                    disabled={updateScholarshipMutation.isPending}
                   >
-                    {agency.name}
+                    {agency.alias}
                   </Button>
                 ))}
               </div>
@@ -132,12 +167,12 @@ export const ScholarshipSection = () => {
                     <div
                       key={agency.id}
                       className={`h-12 rounded-md border flex items-center justify-center font-medium transition-smooth ${
-                        selectedAgency === agency.id
+                        selectedAgency.id === agency.id
                           ? "bg-primary text-primary-foreground border-primary"
                           : "bg-muted/50 text-muted-foreground border-muted opacity-50"
                       }`}
                     >
-                      {agency.name}
+                      {agency.alias}
                     </div>
                   ))}
                 </div>

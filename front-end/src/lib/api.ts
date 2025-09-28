@@ -597,4 +597,42 @@ export const updateUserLinkPeriod = async (data: UserLinkPeriod): Promise<Update
   return response.data;
 };
 
+// Scholarship types
+export interface ScholarshipAgency {
+  id: number;
+  name: string;
+  alias: string;
+}
+
+export interface UserScholarship {
+  is_scholarship_holder: boolean;
+  agency: ScholarshipAgency | null;
+}
+
+export interface UpdateUserScholarshipRequest {
+  agency_id: number | null;
+}
+
+export interface UpdateUserScholarshipResponse {
+  message: string;
+  scholarship: UserScholarship;
+}
+
+// Scholarship API functions
+export const getStudentAgencies = async (): Promise<ScholarshipAgency[]> => {
+  const response = await api.get<ScholarshipAgency[]>('/api/student/agencies');
+  return response.data;
+};
+
+export const getUserScholarship = async (): Promise<UserScholarship> => {
+  const response = await api.get<UserScholarship>('/api/student/scholarship');
+  return response.data;
+};
+
+export const updateUserScholarship = async (data: UpdateUserScholarshipRequest): Promise<UpdateUserScholarshipResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateUserScholarshipResponse>('/api/student/scholarship', data);
+  return response.data;
+};
+
 export default api;
