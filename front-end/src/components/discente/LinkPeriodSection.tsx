@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar, Clock } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { updateUserLinkPeriod, getUserLinkPeriod, UserLinkPeriod } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 
 export const LinkPeriodSection = () => {
   const [formData, setFormData] = useState({
@@ -14,16 +16,80 @@ export const LinkPeriodSection = () => {
   });
   const { toast } = useToast();
 
+  // Load initial data
+  useEffect(() => {
+    const loadLinkPeriodData = async () => {
+      try {
+        const linkPeriodData = await getUserLinkPeriod();
+        setFormData({
+          dataInicio: linkPeriodData.academic_bond.start_date || "",
+          dataTermino: linkPeriodData.academic_bond.end_date || ""
+        });
+      } catch (error) {
+        console.error("Failed to load link period data:", error);
+        // Keep empty form if no data exists or on error
+      }
+    };
+
+    loadLinkPeriodData();
+  }, []);
+
+  // Mutation for updating link period
+  const updateLinkPeriodMutation = useMutation({
+    mutationFn: (data: UserLinkPeriod) => updateUserLinkPeriod(data),
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Data salva automaticamente"
+      });
+    },
+    onError: (error: any) => {
+      console.error("Update error:", error);
+
+      // Handle validation errors
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data.errors;
+
+        if (validationErrors.start_date) {
+          toast({
+            title: "Erro",
+            description: validationErrors.start_date[0],
+            variant: "destructive"
+          });
+        } else if (validationErrors.end_date) {
+          toast({
+            title: "Erro",
+            description: validationErrors.end_date[0],
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Erro",
+          description: "Falha ao salvar data",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleFieldBlur = async (field: string) => {
-    // Validação de datas
+    const currentValue = formData[field as keyof typeof formData];
+
+    // Skip if field is empty
+    if (!currentValue) {
+      return;
+    }
+
+    // Client-side date validations
     if (field === "dataInicio" && formData.dataTermino) {
       const inicio = new Date(formData.dataInicio);
       const termino = new Date(formData.dataTermino);
-      
+
       if (inicio > termino) {
         toast({
           title: "Erro",
@@ -37,7 +103,7 @@ export const LinkPeriodSection = () => {
     if (field === "dataTermino" && formData.dataInicio) {
       const inicio = new Date(formData.dataInicio);
       const termino = new Date(formData.dataTermino);
-      
+
       if (termino < inicio) {
         toast({
           title: "Erro",
@@ -48,20 +114,16 @@ export const LinkPeriodSection = () => {
       }
     }
 
-    // Simulação de salvamento
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      toast({
-        title: "Sucesso",
-        description: "Data salva automaticamente"
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao salvar data",
-        variant: "destructive"
-      });
+    // Save to API
+    const updateData: UserLinkPeriod = {};
+
+    if (field === "dataInicio") {
+      updateData.start_date = currentValue;
+    } else if (field === "dataTermino") {
+      updateData.end_date = currentValue;
     }
+
+    updateLinkPeriodMutation.mutate(updateData);
   };
 
   const calculateRemainingDays = () => {
@@ -91,6 +153,7 @@ export const LinkPeriodSection = () => {
     }
   };
 
+  // Recalcular quando as datas mudarem
   const remainingInfo = calculateRemainingDays();
 
   const getStatusColor = (status: string) => {
