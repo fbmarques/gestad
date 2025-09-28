@@ -33,6 +33,9 @@ export interface UserProfile {
   name: string;
   email: string;
   theme: boolean;
+  registration?: string;
+  lattes_url?: string;
+  orcid?: string;
 }
 
 export interface UserProfileResponse {
@@ -514,6 +517,22 @@ export interface StudentData {
   };
 }
 
+// User Basic Info types
+export interface UserBasicInfo {
+  registration?: string;
+  lattes_url?: string;
+  orcid?: string;
+}
+
+export interface UpdateUserBasicInfoResponse {
+  message: string;
+  user: {
+    registration?: string;
+    lattes_url?: string;
+    orcid?: string;
+  };
+}
+
 // Stats types
 export interface StatsCountsResponse {
   discentes: number;
@@ -535,6 +554,13 @@ export const getStudentData = async (): Promise<StudentData> => {
 // Stats API functions
 export const getStatsCounts = async (): Promise<StatsCountsResponse> => {
   const response = await api.get<StatsCountsResponse>('/api/stats/counts');
+  return response.data;
+};
+
+// User Basic Info API functions
+export const updateUserBasicInfo = async (data: UserBasicInfo): Promise<UpdateUserBasicInfoResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateUserBasicInfoResponse>('/api/discente/basic-info', data);
   return response.data;
 };
 

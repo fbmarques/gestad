@@ -26,6 +26,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'registration',
         'lattes_url',
         'orcid',
         'research_line_id',

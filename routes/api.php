@@ -70,6 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/discentes/{id}/reset-password', [DiscenteController::class, 'resetPassword']);
     Route::get('/docentes-dropdown', [DiscenteController::class, 'docentes']);
 
+    // Basic info update for students (accessible by authenticated students)
+    Route::patch('/discente/basic-info', [DiscenteController::class, 'updateBasicInfo']);
+
     // Student routes (accessible by student)
     Route::get('/student/me', [StudentController::class, 'me']);
 });

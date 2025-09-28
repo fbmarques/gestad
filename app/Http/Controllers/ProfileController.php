@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
@@ -11,7 +11,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
@@ -19,7 +19,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'success' => true,
-            'roles' => $roles
+            'roles' => $roles,
         ]);
     }
 
@@ -27,7 +27,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
@@ -42,7 +42,7 @@ class ProfileController extends Controller
         return response()->json([
             'success' => true,
             'theme' => $user->theme,
-            'message' => 'Theme preference updated successfully'
+            'message' => 'Theme preference updated successfully',
         ]);
     }
 
@@ -50,7 +50,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'User not authenticated'], 401);
         }
 
@@ -61,7 +61,10 @@ class ProfileController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'theme' => $user->theme,
-            ]
+                'registration' => $user->registration,
+                'lattes_url' => $user->lattes_url,
+                'orcid' => $user->orcid,
+            ],
         ]);
     }
 }

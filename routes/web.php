@@ -274,9 +274,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/discente', function () {
-        // Check if user has role 1 or 2
+        // Check if user has role 1, 2, or 3 (admin, docente, or discente can access)
         $user = auth()->user();
-        $hasAccess = $user && $user->roles()->whereIn('role_id', [1, 2])->exists();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [1, 2, 3])->exists();
 
         if (! $hasAccess) {
             return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);

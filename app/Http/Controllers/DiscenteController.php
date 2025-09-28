@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDiscenteRequest;
 use App\Http\Requests\UpdateDiscenteRequest;
+use App\Http\Requests\UpdateUserBasicInfoRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
 use App\Models\ResearchLine;
@@ -382,5 +383,46 @@ class DiscenteController extends Controller
         $discente->update(['password' => '12345678']);
 
         return response()->json(['message' => 'Senha resetada com sucesso para 12345678.']);
+    }
+
+    public function updateBasicInfo(UpdateUserBasicInfoRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem atualizar suas informações básicas.'], 403);
+        }
+
+        // Update only the fields that were provided
+        $fieldsToUpdate = [];
+
+        if ($request->has('registration')) {
+            $fieldsToUpdate['registration'] = $request->registration;
+        }
+
+        if ($request->has('lattes_url')) {
+            $fieldsToUpdate['lattes_url'] = $request->lattes_url;
+        }
+
+        if ($request->has('orcid')) {
+            $fieldsToUpdate['orcid'] = $request->orcid;
+        }
+
+        if (! empty($fieldsToUpdate)) {
+            $user->update($fieldsToUpdate);
+        }
+
+        return response()->json([
+            'message' => 'Informações básicas atualizadas com sucesso.',
+            'user' => [
+                'registration' => $user->registration,
+                'lattes_url' => $user->lattes_url,
+                'orcid' => $user->orcid,
+            ],
+        ]);
     }
 }
