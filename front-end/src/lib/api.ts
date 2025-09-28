@@ -635,4 +635,48 @@ export const updateUserScholarship = async (data: UpdateUserScholarshipRequest):
   return response.data;
 };
 
+// Research Definitions types
+export interface UserResearchDefinitions {
+  problem_defined: boolean;
+  problem_text: string | null;
+  question_defined: boolean;
+  question_text: string | null;
+  objectives_defined: boolean;
+  objectives_text: string | null;
+  methodology_defined: boolean;
+  methodology_text: string | null;
+}
+
+export interface UpdateUserResearchDefinitionsRequest {
+  problem_defined?: boolean;
+  problem_text?: string | null;
+  question_defined?: boolean;
+  question_text?: string | null;
+  objectives_defined?: boolean;
+  objectives_text?: string | null;
+  methodology_defined?: boolean;
+  methodology_text?: string | null;
+}
+
+export interface UpdateUserResearchDefinitionsResponse {
+  message: string;
+  research_definitions: UserResearchDefinitions;
+}
+
+export interface GetUserResearchDefinitionsResponse {
+  research_definitions: UserResearchDefinitions;
+}
+
+// Research Definitions API functions
+export const getUserResearchDefinitions = async (): Promise<UserResearchDefinitions> => {
+  const response = await api.get<GetUserResearchDefinitionsResponse>('/api/student/research-definitions');
+  return response.data.research_definitions;
+};
+
+export const updateUserResearchDefinitions = async (data: UpdateUserResearchDefinitionsRequest): Promise<UpdateUserResearchDefinitionsResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateUserResearchDefinitionsResponse>('/api/student/research-definitions', data);
+  return response.data;
+};
+
 export default api;

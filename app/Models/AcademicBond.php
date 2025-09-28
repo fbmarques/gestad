@@ -28,6 +28,14 @@ class AcademicBond extends Model
         'end_date',
         'title',
         'description',
+        'problem_defined',
+        'problem_text',
+        'question_defined',
+        'question_text',
+        'objectives_defined',
+        'objectives_text',
+        'methodology_defined',
+        'methodology_text',
     ];
 
     /**
@@ -40,6 +48,10 @@ class AcademicBond extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
+            'problem_defined' => 'boolean',
+            'question_defined' => 'boolean',
+            'objectives_defined' => 'boolean',
+            'methodology_defined' => 'boolean',
         ];
     }
 

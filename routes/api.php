@@ -80,4 +80,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student/agencies', [StudentController::class, 'getAgencies']);
     Route::get('/student/scholarship', [StudentController::class, 'getScholarship']);
     Route::patch('/student/scholarship', [StudentController::class, 'updateScholarship']);
+    Route::get('/student/research-definitions', [StudentController::class, 'getResearchDefinitions']);
+    Route::patch('/student/research-definitions', [StudentController::class, 'updateResearchDefinitions']);
 });

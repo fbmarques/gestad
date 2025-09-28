@@ -1,54 +1,104 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Check, X, Edit } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getUserResearchDefinitions,
+  updateUserResearchDefinitions,
+  UserResearchDefinitions,
+  UpdateUserResearchDefinitionsRequest
+} from "@/lib/api";
 
 interface Definition {
-  id: string;
+  id: keyof UserResearchDefinitions;
   title: string;
   placeholder: string;
   active: boolean;
-  text: string;
+  text: string | null;
 }
 
 export const ResearchDefinitionsSection = () => {
-  const [definitions, setDefinitions] = useState<Definition[]>([
-    {
-      id: "problema",
-      title: "Problema de Pesquisa",
-      placeholder: "Descreva o problema que sua pesquisa pretende resolver...",
-      active: false,
-      text: ""
-    },
-    {
-      id: "pergunta",
-      title: "Pergunta de Pesquisa",
-      placeholder: "Qual é a pergunta principal que guia sua pesquisa?",
-      active: false,
-      text: ""
-    },
-    {
-      id: "objetivos",
-      title: "Objetivos",
-      placeholder: "Descreva os objetivos gerais e específicos da pesquisa...",
-      active: false,
-      text: ""
-    },
-    {
-      id: "metodologia",
-      title: "Metodologia",
-      placeholder: "Descreva a metodologia que será utilizada na pesquisa...",
-      active: false,
-      text: ""
-    }
-  ]);
-  
+  const [definitions, setDefinitions] = useState<Definition[]>([]);
   const [openModal, setOpenModal] = useState<string | null>(null);
   const [tempText, setTempText] = useState<string>("");
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Load research definitions from API
+  const { data: researchDefinitions, isLoading, error } = useQuery({
+    queryKey: ['userResearchDefinitions'],
+    queryFn: getUserResearchDefinitions,
+  });
+
+  // Update research definitions mutation
+  const updateDefinitionsMutation = useMutation({
+    mutationFn: (data: UpdateUserResearchDefinitionsRequest) => updateUserResearchDefinitions(data),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['userResearchDefinitions'] });
+      toast({
+        title: "Sucesso",
+        description: response.message
+      });
+    },
+    onError: (error: any) => {
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data.errors;
+        const firstError = Object.values(validationErrors)[0] as string[];
+        toast({
+          title: "Erro de validação",
+          description: firstError[0],
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Falha ao salvar definição de pesquisa",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // Update definitions array when API data loads
+  useEffect(() => {
+    if (researchDefinitions) {
+      const definitionsTemplate = [
+        {
+          id: "problem_defined" as keyof UserResearchDefinitions,
+          title: "Problema de Pesquisa",
+          placeholder: "Descreva o problema que sua pesquisa pretende resolver...",
+          active: researchDefinitions.problem_defined,
+          text: researchDefinitions.problem_text
+        },
+        {
+          id: "question_defined" as keyof UserResearchDefinitions,
+          title: "Pergunta de Pesquisa",
+          placeholder: "Qual é a pergunta principal que guia sua pesquisa?",
+          active: researchDefinitions.question_defined,
+          text: researchDefinitions.question_text
+        },
+        {
+          id: "objectives_defined" as keyof UserResearchDefinitions,
+          title: "Objetivos",
+          placeholder: "Descreva os objetivos gerais e específicos da pesquisa...",
+          active: researchDefinitions.objectives_defined,
+          text: researchDefinitions.objectives_text
+        },
+        {
+          id: "methodology_defined" as keyof UserResearchDefinitions,
+          title: "Metodologia",
+          placeholder: "Descreva a metodologia que será utilizada na pesquisa...",
+          active: researchDefinitions.methodology_defined,
+          text: researchDefinitions.methodology_text
+        }
+      ];
+      setDefinitions(definitionsTemplate);
+    }
+  }, [researchDefinitions]);
 
   const handleToggle = async (id: string, value: boolean) => {
     if (value) {
@@ -57,54 +107,45 @@ export const ResearchDefinitionsSection = () => {
       setTempText(definition?.text || "");
       setOpenModal(id);
     } else {
-      // Se está desativando, limpa o texto
-      setDefinitions(prev => 
-        prev.map(def => 
-          def.id === id 
-            ? { ...def, active: false, text: "" }
-            : def
-        )
-      );
-      
-      const definition = definitions.find(d => d.id === id);
-      toast({
-        title: "Sucesso",
-        description: `${definition?.title} desativada`
-      });
+      // Se está desativando, chama a API para desativar
+      const fieldMap = getFieldMapping(id);
+      if (fieldMap) {
+        const updateData: UpdateUserResearchDefinitionsRequest = {
+          [fieldMap.defined]: false,
+          [fieldMap.text]: null
+        };
+        updateDefinitionsMutation.mutate(updateData);
+      }
     }
   };
 
   const handleSaveModal = async () => {
     if (!openModal) return;
-    
-    const hasContent = tempText.trim().length > 0;
-    
-    setDefinitions(prev =>
-      prev.map(def =>
-        def.id === openModal 
-          ? { ...def, active: hasContent, text: hasContent ? tempText.trim() : "" }
-          : def
-      )
-    );
 
-    const definition = definitions.find(d => d.id === openModal);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      toast({
-        title: "Sucesso",
-        description: `${definition?.title} ${hasContent ? "salva" : "desativada"}`
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao salvar definição",
-        variant: "destructive"
-      });
+    const hasContent = tempText.trim().length > 0;
+    const fieldMap = getFieldMapping(openModal);
+
+    if (fieldMap) {
+      const updateData: UpdateUserResearchDefinitionsRequest = {
+        [fieldMap.defined]: hasContent,
+        [fieldMap.text]: hasContent ? tempText.trim() : null
+      };
+      updateDefinitionsMutation.mutate(updateData);
     }
-    
+
     setOpenModal(null);
     setTempText("");
+  };
+
+  // Helper function to map definition IDs to API field names
+  const getFieldMapping = (id: string) => {
+    const mappings = {
+      'problem_defined': { defined: 'problem_defined' as keyof UpdateUserResearchDefinitionsRequest, text: 'problem_text' as keyof UpdateUserResearchDefinitionsRequest },
+      'question_defined': { defined: 'question_defined' as keyof UpdateUserResearchDefinitionsRequest, text: 'question_text' as keyof UpdateUserResearchDefinitionsRequest },
+      'objectives_defined': { defined: 'objectives_defined' as keyof UpdateUserResearchDefinitionsRequest, text: 'objectives_text' as keyof UpdateUserResearchDefinitionsRequest },
+      'methodology_defined': { defined: 'methodology_defined' as keyof UpdateUserResearchDefinitionsRequest, text: 'methodology_text' as keyof UpdateUserResearchDefinitionsRequest }
+    };
+    return mappings[id as keyof typeof mappings];
   };
 
   const handleCloseModal = () => {
@@ -112,14 +153,42 @@ export const ResearchDefinitionsSection = () => {
     setTempText("");
   };
 
-  const getCompletedCount = () => {
-    return definitions.filter(def => def.active && def.text.trim()).length;
-  };
 
-  const isProgressBlocked = () => {
-    // Lógica de controle progressivo - pelo menos 2 definições devem estar completas
-    return getCompletedCount() < 2;
-  };
+  if (isLoading) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Search className="w-5 h-5 text-primary" />
+            Definições de Pesquisa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">Carregando definições de pesquisa...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Search className="w-5 h-5 text-primary" />
+            Definições de Pesquisa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-destructive">Erro ao carregar definições de pesquisa</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-card-border">
@@ -128,9 +197,6 @@ export const ResearchDefinitionsSection = () => {
           <Search className="w-5 h-5 text-primary" />
           Definições de Pesquisa
         </CardTitle>
-        <div className="text-sm text-muted-foreground">
-          Complete pelo menos 2 definições para prosseguir ({getCompletedCount()}/4)
-        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {definitions.map((definition) => (
@@ -184,15 +250,6 @@ export const ResearchDefinitionsSection = () => {
             )}
           </div>
         ))}
-
-        {isProgressBlocked() && (
-          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-            <p className="text-sm text-warning-foreground">
-              <span className="font-medium">Atenção:</span> Complete pelo menos 2 definições 
-              de pesquisa para liberar as próximas seções.
-            </p>
-          </div>
-        )}
       </CardContent>
 
       <Dialog open={!!openModal} onOpenChange={(open) => !open && handleCloseModal()}>

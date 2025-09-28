@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateUserLinkPeriodRequest;
+use App\Http\Requests\UpdateUserResearchDefinitionsRequest;
 use App\Http\Requests\UpdateUserScholarshipRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
@@ -260,6 +261,122 @@ class StudentController extends Controller
         return response()->json([
             'message' => $message,
             'scholarship' => $scholarshipData,
+        ]);
+    }
+
+    /**
+     * Get the research definitions for the authenticated user's active academic bond.
+     */
+    public function getResearchDefinitions(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar definições de pesquisa.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        return response()->json([
+            'research_definitions' => [
+                'problem_defined' => $academicBond->problem_defined,
+                'problem_text' => $academicBond->problem_text,
+                'question_defined' => $academicBond->question_defined,
+                'question_text' => $academicBond->question_text,
+                'objectives_defined' => $academicBond->objectives_defined,
+                'objectives_text' => $academicBond->objectives_text,
+                'methodology_defined' => $academicBond->methodology_defined,
+                'methodology_text' => $academicBond->methodology_text,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the research definitions for the authenticated user's active academic bond.
+     */
+    public function updateResearchDefinitions(UpdateUserResearchDefinitionsRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem atualizar definições de pesquisa.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Update only the fields that were provided
+        $fieldsToUpdate = [];
+
+        if ($request->has('problem_defined')) {
+            $fieldsToUpdate['problem_defined'] = $request->problem_defined;
+        }
+
+        if ($request->has('problem_text')) {
+            $fieldsToUpdate['problem_text'] = $request->problem_text;
+        }
+
+        if ($request->has('question_defined')) {
+            $fieldsToUpdate['question_defined'] = $request->question_defined;
+        }
+
+        if ($request->has('question_text')) {
+            $fieldsToUpdate['question_text'] = $request->question_text;
+        }
+
+        if ($request->has('objectives_defined')) {
+            $fieldsToUpdate['objectives_defined'] = $request->objectives_defined;
+        }
+
+        if ($request->has('objectives_text')) {
+            $fieldsToUpdate['objectives_text'] = $request->objectives_text;
+        }
+
+        if ($request->has('methodology_defined')) {
+            $fieldsToUpdate['methodology_defined'] = $request->methodology_defined;
+        }
+
+        if ($request->has('methodology_text')) {
+            $fieldsToUpdate['methodology_text'] = $request->methodology_text;
+        }
+
+        if (! empty($fieldsToUpdate)) {
+            $academicBond->update($fieldsToUpdate);
+        }
+
+        return response()->json([
+            'message' => 'Definições de pesquisa atualizadas com sucesso.',
+            'research_definitions' => [
+                'problem_defined' => $academicBond->problem_defined,
+                'problem_text' => $academicBond->problem_text,
+                'question_defined' => $academicBond->question_defined,
+                'question_text' => $academicBond->question_text,
+                'objectives_defined' => $academicBond->objectives_defined,
+                'objectives_text' => $academicBond->objectives_text,
+                'methodology_defined' => $academicBond->methodology_defined,
+                'methodology_text' => $academicBond->methodology_text,
+            ],
         ]);
     }
 }
