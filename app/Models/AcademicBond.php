@@ -36,6 +36,13 @@ class AcademicBond extends Model
         'objectives_text',
         'methodology_defined',
         'methodology_text',
+        'qualification_status',
+        'qualification_date',
+        'qualification_completion_date',
+        'defense_status',
+        'defense_date',
+        'defense_completion_date',
+        'work_completed',
     ];
 
     /**
@@ -52,6 +59,11 @@ class AcademicBond extends Model
             'question_defined' => 'boolean',
             'objectives_defined' => 'boolean',
             'methodology_defined' => 'boolean',
+            'qualification_date' => 'date',
+            'qualification_completion_date' => 'date',
+            'defense_date' => 'date',
+            'defense_completion_date' => 'date',
+            'work_completed' => 'boolean',
         ];
     }
 

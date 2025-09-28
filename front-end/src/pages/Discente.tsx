@@ -70,9 +70,7 @@ const Discente = () => {
             <LinkPeriodSection />
             <ScholarshipSection />
             <ResearchDefinitionsSection />
-            <AcademicRequirementsSection />
-            <AcademicRequirementsSteps />
-            <AcademicRequirementsVerticalSteps />
+?            <AcademicRequirementsVerticalSteps />
             <DisciplinesSection />
             <ProductionsSection />
             <EventsSection />

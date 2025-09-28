@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Calendar, FileText, Trash2, Check, X } from "lucide-react";
+import { getUserAcademicRequirements, updateUserAcademicRequirements, UpdateUserAcademicRequirementsRequest } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 
 export const AcademicRequirementsVerticalSteps = () => {
   const [qualificacao, setQualificacao] = useState({
@@ -12,86 +14,188 @@ export const AcademicRequirementsVerticalSteps = () => {
     data: "",
     concluida: false
   });
-  
+
   const [defesa, setDefesa] = useState({
     marcada: false,
     data: "",
     concluida: false
   });
-  
+
   const [trabalho, setTrabalho] = useState({
     entregue: false
   });
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Load initial data from API
+  useEffect(() => {
+    const loadAcademicRequirements = async () => {
+      try {
+        const data = await getUserAcademicRequirements();
+
+        // Map API data to component state
+        setQualificacao({
+          marcada: data.qualification_status !== 'Not Scheduled',
+          data: data.qualification_date || "",
+          concluida: data.qualification_status === 'Completed'
+        });
+
+        setDefesa({
+          marcada: data.defense_status !== 'Not Scheduled',
+          data: data.defense_date || "",
+          concluida: data.defense_status === 'Completed'
+        });
+
+        setTrabalho({
+          entregue: data.work_completed
+        });
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to load academic requirements:", error);
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar requisitos acadêmicos",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+      }
+    };
+
+    loadAcademicRequirements();
+  }, [toast]);
+
+  // Mutation for updating academic requirements
+  const updateAcademicRequirementsMutation = useMutation({
+    mutationFn: (data: UpdateUserAcademicRequirementsRequest) => updateUserAcademicRequirements(data),
+    onSuccess: (response) => {
+      toast({
+        title: "Sucesso",
+        description: response.message
+      });
+    },
+    onError: (error: any) => {
+      console.error("Failed to update academic requirements:", error);
+      if (error.response?.status === 422) {
+        const validationErrors = error.response.data.errors;
+        const errorMessage = Object.values(validationErrors).flat().join(', ');
+        toast({
+          title: "Erro de Validação",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Erro",
+          description: "Falha ao atualizar requisitos acadêmicos",
+          variant: "destructive"
+        });
+      }
+    }
+  });
 
   const handleQualificacaoToggle = (marcada: boolean) => {
     setQualificacao(prev => ({ ...prev, marcada }));
-    toast({
-      title: "Sucesso",
-      description: marcada ? "Qualificação ativada" : "Qualificação desativada"
-    });
+
+    // Map to API data
+    const qualificationStatus = marcada ? 'Scheduled' : 'Not Scheduled';
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      qualification_status: qualificationStatus
+    };
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleQualificacaoDate = (data: string) => {
-    setQualificacao(prev => ({ ...prev, data }));
+    setQualificacao(prev => ({ ...prev, data, marcada: !!data }));
+
     if (data) {
-      toast({
-        title: "Sucesso",
-        description: "Data da qualificação definida"
-      });
+      const updateData: UpdateUserAcademicRequirementsRequest = {
+        qualification_status: 'Scheduled',
+        qualification_date: data
+      };
+      updateAcademicRequirementsMutation.mutate(updateData);
     }
   };
 
   const handleRemoveQualificacaoDate = () => {
     setQualificacao(prev => ({ ...prev, data: "", concluida: false, marcada: false }));
-    toast({
-      title: "Sucesso",
-      description: "Data da qualificação removida"
-    });
+
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      qualification_status: 'Not Scheduled',
+      qualification_date: null,
+      qualification_completion_date: null
+    };
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleQualificacaoConcluida = (concluida: boolean) => {
     setQualificacao(prev => ({ ...prev, concluida }));
-    toast({
-      title: "Sucesso",
-      description: concluida ? "Qualificação marcada como concluída" : "Status da qualificação atualizado"
-    });
+
+    const qualificationStatus = concluida ? 'Completed' : 'Scheduled';
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      qualification_status: qualificationStatus
+    };
+
+    if (concluida) {
+      updateData.qualification_completion_date = new Date().toISOString().split('T')[0];
+    }
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleDefesaToggle = (marcada: boolean) => {
     setDefesa(prev => ({ ...prev, marcada }));
-    toast({
-      title: "Sucesso",
-      description: marcada ? "Defesa ativada" : "Defesa desativada"
-    });
+
+    // Map to API data
+    const defenseStatus = marcada ? 'Scheduled' : 'Not Scheduled';
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      defense_status: defenseStatus
+    };
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleDefesaDate = (data: string) => {
-    setDefesa(prev => ({ ...prev, data }));
+    setDefesa(prev => ({ ...prev, data, marcada: !!data }));
+
     if (data) {
-      toast({
-        title: "Sucesso",
-        description: "Data da defesa definida"
-      });
+      const updateData: UpdateUserAcademicRequirementsRequest = {
+        defense_status: 'Scheduled',
+        defense_date: data
+      };
+      updateAcademicRequirementsMutation.mutate(updateData);
     }
   };
 
   const handleRemoveDefesaDate = () => {
     setDefesa(prev => ({ ...prev, data: "", concluida: false, marcada: false }));
-    toast({
-      title: "Sucesso",
-      description: "Data da defesa removida"
-    });
+
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      defense_status: 'Not Scheduled',
+      defense_date: null,
+      defense_completion_date: null
+    };
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleDefesaConcluida = (concluida: boolean) => {
     setDefesa(prev => ({ ...prev, concluida }));
-    toast({
-      title: "Sucesso",
-      description: concluida ? "Defesa marcada como concluída" : "Status da defesa atualizado"
-    });
+
+    const defenseStatus = concluida ? 'Completed' : 'Scheduled';
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      defense_status: defenseStatus
+    };
+
+    if (concluida) {
+      updateData.defense_completion_date = new Date().toISOString().split('T')[0];
+    }
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleTrabalhoEntregueToggle = (entregue: boolean) => {
@@ -99,20 +203,24 @@ export const AcademicRequirementsVerticalSteps = () => {
       setShowConfirmModal(true);
     } else {
       setTrabalho(prev => ({ ...prev, entregue: false }));
-      toast({
-        title: "Sucesso",
-        description: "Status do trabalho alterado"
-      });
+
+      const updateData: UpdateUserAcademicRequirementsRequest = {
+        work_completed: false
+      };
+
+      updateAcademicRequirementsMutation.mutate(updateData);
     }
   };
 
   const handleConfirmTrabalhoEntregue = () => {
     setTrabalho(prev => ({ ...prev, entregue: true }));
     setShowConfirmModal(false);
-    toast({
-      title: "Sucesso",
-      description: "Trabalho marcado como entregue - Esta ação não pode ser desfeita"
-    });
+
+    const updateData: UpdateUserAcademicRequirementsRequest = {
+      work_completed: true
+    };
+
+    updateAcademicRequirementsMutation.mutate(updateData);
   };
 
   const handleGerarPDF = () => {
@@ -201,12 +309,30 @@ export const AcademicRequirementsVerticalSteps = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <GraduationCap className="w-5 h-5 text-primary" />
+            Requisitos Acadêmicos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Carregando requisitos acadêmicos...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-card-border">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           <GraduationCap className="w-5 h-5 text-primary" />
-          Requisitos Acadêmicos 3 (Vertical)
+          Requisitos Acadêmicos
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UpdateUserLinkPeriodRequest;
 use App\Http\Requests\UpdateUserResearchDefinitionsRequest;
 use App\Http\Requests\UpdateUserScholarshipRequest;
+use App\Http\Requests\UpdateUserAcademicRequirementsRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
 use Illuminate\Http\JsonResponse;
@@ -376,6 +377,130 @@ class StudentController extends Controller
                 'objectives_text' => $academicBond->objectives_text,
                 'methodology_defined' => $academicBond->methodology_defined,
                 'methodology_text' => $academicBond->methodology_text,
+            ],
+        ]);
+    }
+
+    /**
+     * Get the academic requirements for the authenticated user's active academic bond.
+     */
+    public function getAcademicRequirements(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar requisitos acadêmicos.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        return response()->json([
+            'academic_requirements' => [
+                'qualification_status' => $academicBond->qualification_status,
+                'qualification_date' => $academicBond->qualification_date ? $academicBond->qualification_date->format('Y-m-d') : null,
+                'qualification_completion_date' => $academicBond->qualification_completion_date ? $academicBond->qualification_completion_date->format('Y-m-d') : null,
+                'defense_status' => $academicBond->defense_status,
+                'defense_date' => $academicBond->defense_date ? $academicBond->defense_date->format('Y-m-d') : null,
+                'defense_completion_date' => $academicBond->defense_completion_date ? $academicBond->defense_completion_date->format('Y-m-d') : null,
+                'work_completed' => $academicBond->work_completed,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the academic requirements for the authenticated user's active academic bond.
+     */
+    public function updateAcademicRequirements(UpdateUserAcademicRequirementsRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem atualizar requisitos acadêmicos.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Update only the fields that were provided
+        $fieldsToUpdate = [];
+
+        if ($request->has('qualification_status')) {
+            $fieldsToUpdate['qualification_status'] = $request->qualification_status;
+
+            // If setting to "Not Scheduled", clear related dates
+            if ($request->qualification_status === 'Not Scheduled') {
+                $fieldsToUpdate['qualification_date'] = null;
+                $fieldsToUpdate['qualification_completion_date'] = null;
+            }
+        }
+
+        if ($request->has('qualification_date')) {
+            $fieldsToUpdate['qualification_date'] = $request->qualification_date;
+        }
+
+        if ($request->has('qualification_completion_date')) {
+            $fieldsToUpdate['qualification_completion_date'] = $request->qualification_completion_date;
+        }
+
+        if ($request->has('defense_status')) {
+            $fieldsToUpdate['defense_status'] = $request->defense_status;
+
+            // If setting to "Not Scheduled", clear related dates
+            if ($request->defense_status === 'Not Scheduled') {
+                $fieldsToUpdate['defense_date'] = null;
+                $fieldsToUpdate['defense_completion_date'] = null;
+            }
+        }
+
+        if ($request->has('defense_date')) {
+            $fieldsToUpdate['defense_date'] = $request->defense_date;
+        }
+
+        if ($request->has('defense_completion_date')) {
+            $fieldsToUpdate['defense_completion_date'] = $request->defense_completion_date;
+        }
+
+        if ($request->has('work_completed')) {
+            $fieldsToUpdate['work_completed'] = $request->work_completed;
+        }
+
+        if (! empty($fieldsToUpdate)) {
+            $academicBond->update($fieldsToUpdate);
+            // Reload the model to get properly cast dates
+            $academicBond->refresh();
+        }
+
+        return response()->json([
+            'message' => 'Requisitos acadêmicos atualizados com sucesso.',
+            'academic_requirements' => [
+                'qualification_status' => $academicBond->qualification_status,
+                'qualification_date' => $academicBond->qualification_date ? $academicBond->qualification_date->format('Y-m-d') : null,
+                'qualification_completion_date' => $academicBond->qualification_completion_date ? $academicBond->qualification_completion_date->format('Y-m-d') : null,
+                'defense_status' => $academicBond->defense_status,
+                'defense_date' => $academicBond->defense_date ? $academicBond->defense_date->format('Y-m-d') : null,
+                'defense_completion_date' => $academicBond->defense_completion_date ? $academicBond->defense_completion_date->format('Y-m-d') : null,
+                'work_completed' => $academicBond->work_completed,
             ],
         ]);
     }

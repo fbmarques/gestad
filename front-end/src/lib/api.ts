@@ -679,4 +679,46 @@ export const updateUserResearchDefinitions = async (data: UpdateUserResearchDefi
   return response.data;
 };
 
+// Academic Requirements types
+export interface UserAcademicRequirements {
+  qualification_status: 'Not Scheduled' | 'Scheduled' | 'Completed';
+  qualification_date: string | null;
+  qualification_completion_date: string | null;
+  defense_status: 'Not Scheduled' | 'Scheduled' | 'Completed';
+  defense_date: string | null;
+  defense_completion_date: string | null;
+  work_completed: boolean;
+}
+
+export interface UpdateUserAcademicRequirementsRequest {
+  qualification_status?: 'Not Scheduled' | 'Scheduled' | 'Completed';
+  qualification_date?: string | null;
+  qualification_completion_date?: string | null;
+  defense_status?: 'Not Scheduled' | 'Scheduled' | 'Completed';
+  defense_date?: string | null;
+  defense_completion_date?: string | null;
+  work_completed?: boolean;
+}
+
+export interface UpdateUserAcademicRequirementsResponse {
+  message: string;
+  academic_requirements: UserAcademicRequirements;
+}
+
+export interface GetUserAcademicRequirementsResponse {
+  academic_requirements: UserAcademicRequirements;
+}
+
+// Academic Requirements API functions
+export const getUserAcademicRequirements = async (): Promise<UserAcademicRequirements> => {
+  const response = await api.get<GetUserAcademicRequirementsResponse>('/api/student/academic-requirements');
+  return response.data.academic_requirements;
+};
+
+export const updateUserAcademicRequirements = async (data: UpdateUserAcademicRequirementsRequest): Promise<UpdateUserAcademicRequirementsResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateUserAcademicRequirementsResponse>('/api/student/academic-requirements', data);
+  return response.data;
+};
+
 export default api;
