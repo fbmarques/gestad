@@ -1,0 +1,11 @@
+{
+  "front-end/src/main.tsx": {
+    "file": "assets/main-DKWT_l5J.js",
+    "name": "main",
+    "src": "front-end/src/main.tsx",
+    "isEntry": true,
+    "css": [
+      "assets/main-C4jE6542.css"
+    ]
+  }
+}
