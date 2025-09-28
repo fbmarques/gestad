@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AddUserDisciplineRequest;
+use App\Http\Requests\UpdateUserAcademicRequirementsRequest;
 use App\Http\Requests\UpdateUserLinkPeriodRequest;
 use App\Http\Requests\UpdateUserResearchDefinitionsRequest;
 use App\Http\Requests\UpdateUserScholarshipRequest;
-use App\Http\Requests\UpdateUserAcademicRequirementsRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
+use App\Models\Course;
+use App\Models\StudentCourse;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -503,5 +507,214 @@ class StudentController extends Controller
                 'work_completed' => $academicBond->work_completed,
             ],
         ]);
+    }
+
+    /**
+     * Get the disciplines (courses) for the authenticated user's active academic bond.
+     */
+    public function getDisciplines(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar as disciplinas.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Get student courses with course and docente details
+        $studentCourses = StudentCourse::where('academic_bond_id', $academicBond->id)
+            ->with(['course', 'docente'])
+            ->get()
+            ->map(function ($studentCourse) {
+                return [
+                    'id' => $studentCourse->id,
+                    'course_id' => $studentCourse->course->id,
+                    'code' => $studentCourse->course->code,
+                    'name' => $studentCourse->course->name,
+                    'credits' => $studentCourse->course->credits,
+                    'docente' => $studentCourse->docente ? $studentCourse->docente->name : 'Sem docente',
+                    'docente_id' => $studentCourse->docente_id,
+                ];
+            });
+
+        // Calculate credits info based on academic level
+        $totalCredits = $studentCourses->sum('credits');
+        $requiredCredits = $academicBond->level === 'master' ? 18 : 22; // 18 for master, 22 for doctorate
+        $progressPercentage = min(($totalCredits / $requiredCredits) * 100, 100);
+
+        return response()->json([
+            'disciplines' => $studentCourses,
+            'credits_info' => [
+                'total_credits' => $totalCredits,
+                'required_credits' => $requiredCredits,
+                'progress_percentage' => round($progressPercentage, 1),
+            ],
+        ]);
+    }
+
+    /**
+     * Add a discipline (course) to the authenticated user's active academic bond.
+     */
+    public function addDiscipline(AddUserDisciplineRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem adicionar disciplinas.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Check if student already has this course
+        $existingStudentCourse = StudentCourse::where('academic_bond_id', $academicBond->id)
+            ->where('course_id', $request->course_id)
+            ->first();
+
+        if ($existingStudentCourse) {
+            return response()->json(['error' => 'Esta disciplina já foi adicionada.'], 422);
+        }
+
+        // Create the student course
+        $studentCourse = StudentCourse::create([
+            'academic_bond_id' => $academicBond->id,
+            'course_id' => $request->course_id,
+            'docente_id' => $request->docente_id,
+        ]);
+
+        // Load the course and docente relationships
+        $studentCourse->load(['course', 'docente']);
+
+        return response()->json([
+            'message' => 'Disciplina adicionada com sucesso.',
+            'discipline' => [
+                'id' => $studentCourse->id,
+                'course_id' => $studentCourse->course->id,
+                'code' => $studentCourse->course->code,
+                'name' => $studentCourse->course->name,
+                'credits' => $studentCourse->course->credits,
+                'docente' => $studentCourse->docente ? $studentCourse->docente->name : 'Sem docente',
+                'docente_id' => $studentCourse->docente_id,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove a discipline (course) from the authenticated user's active academic bond.
+     */
+    public function removeDiscipline(StudentCourse $studentCourse): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem remover disciplinas.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Check if the student course belongs to this student's academic bond
+        if ($studentCourse->academic_bond_id !== $academicBond->id) {
+            return response()->json(['error' => 'Disciplina não encontrada ou não pertence a este discente.'], 404);
+        }
+
+        $studentCourse->delete();
+
+        return response()->json([
+            'message' => 'Disciplina removida com sucesso.',
+        ]);
+    }
+
+    /**
+     * Get available courses for selection.
+     */
+    public function getAvailableCourses(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar as disciplinas disponíveis.'], 403);
+        }
+
+        $courses = Course::whereNull('deleted_at')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'credits'])
+            ->map(function ($course) {
+                return [
+                    'id' => $course->id,
+                    'code' => $course->code,
+                    'name' => $course->name,
+                    'credits' => $course->credits,
+                ];
+            });
+
+        return response()->json($courses);
+    }
+
+    /**
+     * Get available teachers (docentes) for selection.
+     */
+    public function getAvailableTeachers(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar os docentes disponíveis.'], 403);
+        }
+
+        $teachers = User::whereHas('roles', function ($query) {
+            $query->where('role_id', 2); // role_id 2 = docente
+        })
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(function ($teacher) {
+                return [
+                    'id' => $teacher->id,
+                    'name' => $teacher->name,
+                ];
+            });
+
+        return response()->json($teachers);
     }
 }

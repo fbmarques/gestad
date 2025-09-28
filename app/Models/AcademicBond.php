@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AcademicBond extends Model
 {
@@ -90,5 +91,10 @@ class AcademicBond extends Model
     public function researchLine(): BelongsTo
     {
         return $this->belongsTo(ResearchLine::class);
+    }
+
+    public function studentCourses(): HasMany
+    {
+        return $this->hasMany(StudentCourse::class);
     }
 }

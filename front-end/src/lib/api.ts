@@ -721,4 +721,74 @@ export const updateUserAcademicRequirements = async (data: UpdateUserAcademicReq
   return response.data;
 };
 
+// Student Disciplines types
+export interface StudentDiscipline {
+  id: number;
+  course_id: number;
+  code: string;
+  name: string;
+  credits: number;
+  docente: string;
+  docente_id: number | null;
+}
+
+export interface StudentDisciplinesResponse {
+  disciplines: StudentDiscipline[];
+  credits_info: {
+    total_credits: number;
+    required_credits: number;
+    progress_percentage: number;
+  };
+}
+
+export interface AvailableCourse {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+}
+
+export interface AvailableTeacher {
+  id: number;
+  name: string;
+}
+
+export interface AddStudentDisciplineRequest {
+  course_id: number;
+  docente_id?: number | null;
+}
+
+export interface AddStudentDisciplineResponse {
+  message: string;
+  discipline: StudentDiscipline;
+}
+
+// Student Disciplines API functions
+export const getStudentDisciplines = async (): Promise<StudentDisciplinesResponse> => {
+  const response = await api.get<StudentDisciplinesResponse>('/api/student/disciplines');
+  return response.data;
+};
+
+export const addStudentDiscipline = async (data: AddStudentDisciplineRequest): Promise<AddStudentDisciplineResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post<AddStudentDisciplineResponse>('/api/student/disciplines', data);
+  return response.data;
+};
+
+export const removeStudentDiscipline = async (disciplineId: number): Promise<{ message: string }> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.delete<{ message: string }>(`/api/student/disciplines/${disciplineId}`);
+  return response.data;
+};
+
+export const getAvailableCourses = async (): Promise<AvailableCourse[]> => {
+  const response = await api.get<AvailableCourse[]>('/api/student/available-courses');
+  return response.data;
+};
+
+export const getAvailableTeachers = async (): Promise<AvailableTeacher[]> => {
+  const response = await api.get<AvailableTeacher[]>('/api/student/available-teachers');
+  return response.data;
+};
+
 export default api;

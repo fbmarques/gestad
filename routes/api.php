@@ -84,4 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/student/research-definitions', [StudentController::class, 'updateResearchDefinitions']);
     Route::get('/student/academic-requirements', [StudentController::class, 'getAcademicRequirements']);
     Route::patch('/student/academic-requirements', [StudentController::class, 'updateAcademicRequirements']);
+    Route::get('/student/disciplines', [StudentController::class, 'getDisciplines']);
+    Route::post('/student/disciplines', [StudentController::class, 'addDiscipline']);
+    Route::delete('/student/disciplines/{studentCourse}', [StudentController::class, 'removeDiscipline']);
+    Route::get('/student/available-courses', [StudentController::class, 'getAvailableCourses']);
+    Route::get('/student/available-teachers', [StudentController::class, 'getAvailableTeachers']);
 });

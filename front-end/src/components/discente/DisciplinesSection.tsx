@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -15,129 +16,160 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-interface Disciplina {
-  id: string;
-  codigo: string;
-  nome: string;
-  creditos: number;
-  docente: string;
-}
+import {
+  getStudentDisciplines,
+  addStudentDiscipline,
+  removeStudentDiscipline,
+  getAvailableCourses,
+  getAvailableTeachers,
+  StudentDiscipline,
+  AvailableCourse,
+  AvailableTeacher
+} from "@/lib/api";
 
 export const DisciplinesSection = () => {
-  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([
-    {
-      id: "1",
-      codigo: "PPGCC001",
-      nome: "Metodologia de Pesquisa",
-      creditos: 3,
-      docente: "Prof. Dr. João Silva"
-    },
-    {
-      id: "2", 
-      codigo: "PPGCC002",
-      nome: "Algoritmos Avançados",
-      creditos: 4,
-      docente: "Prof. Dr. Maria Santos"
-    }
-  ]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    disciplina: "",
-    docente: ""
+    disciplina: "none",
+    docente: "none"
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Mock data
-  const disciplinasDisponiveis = [
-    { id: "1", codigo: "PPGCC003", nome: "Inteligência Artificial", creditos: 4 },
-    { id: "2", codigo: "PPGCC004", nome: "Banco de Dados Avançados", creditos: 3 },
-    { id: "3", codigo: "PPGCC005", nome: "Redes de Computadores", creditos: 3 }
-  ];
+  // Fetch student disciplines
+  const { data: disciplinesData, isLoading: disciplinesLoading, error: disciplinesError } = useQuery({
+    queryKey: ['student-disciplines'],
+    queryFn: getStudentDisciplines,
+  });
 
-  const docentesDisponiveis = [
-    { id: "1", nome: "Prof. Dr. Carlos Oliveira" },
-    { id: "2", nome: "Prof. Dr. Ana Costa" },
-    { id: "3", nome: "Prof. Dr. Pedro Alves" }
-  ];
+  // Fetch available courses
+  const { data: availableCourses = [], isLoading: coursesLoading } = useQuery({
+    queryKey: ['available-courses'],
+    queryFn: getAvailableCourses,
+  });
 
-  const creditosNecessarios = 24; // Para mestrado
-  const creditosAtuais = disciplinas.reduce((total, disc) => total + disc.creditos, 0);
-  const progressoPercentual = Math.min((creditosAtuais / creditosNecessarios) * 100, 100);
+  // Fetch available teachers
+  const { data: availableTeachers = [], isLoading: teachersLoading } = useQuery({
+    queryKey: ['available-teachers'],
+    queryFn: getAvailableTeachers,
+  });
 
-  const handleAddDisciplina = async () => {
-    if (!formData.disciplina || !formData.docente) {
+  const disciplines = disciplinesData?.disciplines || [];
+  const creditsInfo = disciplinesData?.credits_info || {
+    total_credits: 0,
+    required_credits: 18,
+    progress_percentage: 0
+  };
+
+  // Add discipline mutation
+  const addDisciplineMutation = useMutation({
+    mutationFn: addStudentDiscipline,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-disciplines'] });
+      setFormData({ disciplina: "none", docente: "none" });
+      setIsModalOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Disciplina adicionada com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Falha ao adicionar disciplina";
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Remove discipline mutation
+  const removeDisciplineMutation = useMutation({
+    mutationFn: removeStudentDiscipline,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-disciplines'] });
+      toast({
+        title: "Sucesso",
+        description: "Disciplina removida com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Falha ao remover disciplina";
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleAddDisciplina = async () => {
+    if (formData.disciplina === "none") {
+      toast({
+        title: "Erro",
+        description: "Selecione uma disciplina",
         variant: "destructive"
       });
       return;
     }
 
-    setIsLoading(true);
+    const requestData: { course_id: number; docente_id?: number | null } = {
+      course_id: parseInt(formData.disciplina)
+    };
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const disciplinaSelecionada = disciplinasDisponiveis.find(d => d.id === formData.disciplina);
-      const docenteSelecionado = docentesDisponiveis.find(d => d.id === formData.docente);
-
-      if (disciplinaSelecionada && docenteSelecionado) {
-        const novaDisciplina: Disciplina = {
-          id: Date.now().toString(),
-          codigo: disciplinaSelecionada.codigo,
-          nome: disciplinaSelecionada.nome,
-          creditos: disciplinaSelecionada.creditos,
-          docente: docenteSelecionado.nome
-        };
-
-        setDisciplinas(prev => [...prev, novaDisciplina]);
-        setFormData({ disciplina: "", docente: "" });
-        setIsModalOpen(false);
-
-        toast({
-          title: "Sucesso",
-          description: "Disciplina adicionada com sucesso"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao adicionar disciplina",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    // Only include docente_id if a docente was selected
+    if (formData.docente !== "none") {
+      requestData.docente_id = parseInt(formData.docente);
     }
+
+    addDisciplineMutation.mutate(requestData);
   };
 
-  const handleRemoveDisciplina = async (id: string) => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setDisciplinas(prev => prev.filter(d => d.id !== id));
-      toast({
-        title: "Sucesso",
-        description: "Disciplina removida com sucesso"
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao remover disciplina",
-        variant: "destructive"
-      });
-    }
+  const handleRemoveDisciplina = async (id: number) => {
+    removeDisciplineMutation.mutate(id);
   };
 
   const getProgressColor = () => {
-    if (progressoPercentual >= 100) return "bg-success";
-    if (progressoPercentual >= 75) return "bg-primary";
-    if (progressoPercentual >= 50) return "bg-warning";
+    if (creditsInfo.progress_percentage >= 100) return "bg-success";
+    if (creditsInfo.progress_percentage >= 75) return "bg-primary";
+    if (creditsInfo.progress_percentage >= 50) return "bg-warning";
     return "bg-destructive";
   };
+
+  // Show loading state
+  if (disciplinesLoading) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <BookOpen className="w-5 h-5 text-primary" />
+            Disciplinas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">Carregando disciplinas...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (disciplinesError) {
+    return (
+      <Card className="border-card-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <BookOpen className="w-5 h-5 text-primary" />
+            Disciplinas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4 text-red-500">Erro ao carregar disciplinas</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-card-border">
@@ -150,7 +182,7 @@ export const DisciplinesSection = () => {
       <CardContent className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            Total: {creditosAtuais}/{creditosNecessarios} créditos
+            Total: {creditsInfo.total_credits}/{creditsInfo.required_credits} créditos
           </div>
           
           <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -172,9 +204,10 @@ export const DisciplinesSection = () => {
                       <SelectValue placeholder="Selecione uma disciplina" />
                     </SelectTrigger>
                     <SelectContent>
-                      {disciplinasDisponiveis.map((disc) => (
-                        <SelectItem key={disc.id} value={disc.id}>
-                          {disc.codigo} - {disc.nome} ({disc.creditos} créditos)
+                      <SelectItem value="none">Selecione uma disciplina</SelectItem>
+                      {availableCourses.map((course) => (
+                        <SelectItem key={course.id} value={course.id.toString()}>
+                          {course.code} - {course.name} ({course.credits} créditos)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -182,15 +215,16 @@ export const DisciplinesSection = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Docente</label>
+                  <label className="text-sm font-medium">Docente (opcional)</label>
                   <Select value={formData.docente} onValueChange={(value) => setFormData(prev => ({ ...prev, docente: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione um docente" />
+                      <SelectValue placeholder="Selecione um docente (opcional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      {docentesDisponiveis.map((docente) => (
-                        <SelectItem key={docente.id} value={docente.id}>
-                          {docente.nome}
+                      <SelectItem value="none">Nenhum docente selecionado</SelectItem>
+                      {availableTeachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                          {teacher.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -201,8 +235,8 @@ export const DisciplinesSection = () => {
                   <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
                     Cancelar
                   </Button>
-                  <Button onClick={handleAddDisciplina} disabled={isLoading} className="flex-1">
-                    {isLoading ? "Salvando..." : "Salvar"}
+                  <Button onClick={handleAddDisciplina} disabled={addDisciplineMutation.isPending} className="flex-1">
+                    {addDisciplineMutation.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </div>
@@ -211,9 +245,9 @@ export const DisciplinesSection = () => {
         </div>
 
         <div className="relative">
-          <Progress value={progressoPercentual} className="h-6" />
+          <Progress value={creditsInfo.progress_percentage} className="h-6" />
           <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-primary-foreground">
-            {progressoPercentual.toFixed(0)}%
+            {creditsInfo.progress_percentage.toFixed(0)}%
           </div>
         </div>
 
@@ -229,37 +263,50 @@ export const DisciplinesSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {disciplinas.map((disciplina) => (
-                <TableRow key={disciplina.id}>
-                  <TableCell className="font-medium">{disciplina.codigo}</TableCell>
-                  <TableCell>{disciplina.nome}</TableCell>
-                  <TableCell>{disciplina.creditos}</TableCell>
-                  <TableCell>{disciplina.docente}</TableCell>
-                  <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir a disciplina "{disciplina.nome}"? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleRemoveDisciplina(disciplina.id)}>
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+              {disciplines.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                    Nenhuma disciplina adicionada ainda
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                disciplines.map((discipline) => (
+                  <TableRow key={discipline.id}>
+                    <TableCell className="font-medium">{discipline.code}</TableCell>
+                    <TableCell>{discipline.name}</TableCell>
+                    <TableCell>{discipline.credits}</TableCell>
+                    <TableCell>{discipline.docente}</TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
+                            disabled={removeDisciplineMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a disciplina "{discipline.name}"? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleRemoveDisciplina(discipline.id)}>
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
