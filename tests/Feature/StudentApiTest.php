@@ -37,6 +37,11 @@ class StudentApiTest extends TestCase
             'name' => 'Prof. Dr. João Silva',
         ]);
 
+        // Create co-advisor user
+        $coAdvisor = User::factory()->create([
+            'name' => 'Prof. Dr. Ana Costa',
+        ]);
+
         // Create student user
         $student = User::factory()->create([
             'name' => 'Maria Santos',
@@ -50,6 +55,7 @@ class StudentApiTest extends TestCase
         AcademicBond::factory()->create([
             'student_id' => $student->id,
             'advisor_id' => $advisor->id,
+            'co_advisor_id' => $coAdvisor->id,
             'research_line_id' => $researchLine->id,
             'level' => 'master',
             'status' => 'active',
@@ -74,6 +80,8 @@ class StudentApiTest extends TestCase
                 'modality',
                 'advisor',
                 'advisor_id',
+                'co_advisor',
+                'co_advisor_id',
                 'research_line',
                 'academic_bond' => [
                     'id',
@@ -90,6 +98,7 @@ class StudentApiTest extends TestCase
                 'email' => 'maria@example.com',
                 'modality' => 'Mestrado',
                 'advisor' => 'Prof. Dr. João Silva',
+                'co_advisor' => 'Prof. Dr. Ana Costa',
                 'research_line' => 'Inteligência Artificial',
             ]);
     }
@@ -203,6 +212,49 @@ class StudentApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'modality' => 'Doutorado',
+            ]);
+    }
+
+    public function test_student_without_co_advisor_returns_null(): void
+    {
+        // Create research line
+        $researchLine = ResearchLine::factory()->create();
+
+        // Create advisor user (no co-advisor)
+        $advisor = User::factory()->create([
+            'name' => 'Prof. Dr. João Silva',
+        ]);
+
+        // Create student user
+        $student = User::factory()->create([
+            'name' => 'Ana Santos',
+        ]);
+
+        // Attach student role
+        $student->roles()->attach(3);
+
+        // Create academic bond without co-advisor
+        AcademicBond::factory()->create([
+            'student_id' => $student->id,
+            'advisor_id' => $advisor->id,
+            'co_advisor_id' => null, // No co-advisor
+            'research_line_id' => $researchLine->id,
+            'level' => 'master',
+            'status' => 'active',
+        ]);
+
+        // Authenticate as student
+        Sanctum::actingAs($student);
+
+        // Make API request
+        $response = $this->getJson('/api/student/me');
+
+        // Assert success response with null co-advisor
+        $response->assertStatus(200)
+            ->assertJson([
+                'advisor' => 'Prof. Dr. João Silva',
+                'co_advisor' => null,
+                'co_advisor_id' => null,
             ]);
     }
 }

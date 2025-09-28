@@ -69,6 +69,9 @@ export const WelcomeSection = () => {
           <div className="text-muted-foreground">
             <p><span className="font-medium">Modalidade:</span> {studentData?.modality}</p>
             <p><span className="font-medium">Orientador:</span> {studentData?.advisor}</p>
+            {studentData?.co_advisor && (
+              <p><span className="font-medium">Co-orientador:</span> {studentData.co_advisor}</p>
+            )}
             {studentData?.research_line && (
               <p><span className="font-medium">Linha de Pesquisa:</span> {studentData.research_line}</p>
             )}

@@ -19,6 +19,7 @@ class AcademicBond extends Model
     protected $fillable = [
         'student_id',
         'advisor_id',
+        'co_advisor_id',
         'agency_id',
         'research_line_id',
         'level',
@@ -50,6 +51,11 @@ class AcademicBond extends Model
     public function advisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'advisor_id');
+    }
+
+    public function coAdvisor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'co_advisor_id');
     }
 
     public function agency(): BelongsTo

@@ -19,7 +19,7 @@ class StudentController extends Controller
         // Buscar vínculo acadêmico ativo do discente
         $academicBond = AcademicBond::where('student_id', $user->id)
             ->where('status', 'active')
-            ->with(['advisor:id,name', 'researchLine:id,name'])
+            ->with(['advisor:id,name', 'coAdvisor:id,name', 'researchLine:id,name'])
             ->first();
 
         if (! $academicBond) {
@@ -40,6 +40,8 @@ class StudentController extends Controller
             'modality' => $modalityMap[$academicBond->level] ?? 'Não definido',
             'advisor' => $academicBond->advisor ? $academicBond->advisor->name : 'Sem orientador',
             'advisor_id' => $academicBond->advisor_id,
+            'co_advisor' => $academicBond->coAdvisor ? $academicBond->coAdvisor->name : null,
+            'co_advisor_id' => $academicBond->co_advisor_id,
             'research_line' => $academicBond->researchLine ? $academicBond->researchLine->name : 'Sem linha de pesquisa',
             'academic_bond' => [
                 'id' => $academicBond->id,

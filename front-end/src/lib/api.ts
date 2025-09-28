@@ -500,6 +500,8 @@ export interface StudentData {
   modality: string; // "Mestrado" | "Doutorado"
   advisor: string;
   advisor_id?: number;
+  co_advisor?: string;
+  co_advisor_id?: number;
   research_line: string;
   academic_bond: {
     id: number;

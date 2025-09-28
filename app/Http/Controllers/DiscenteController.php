@@ -27,6 +27,7 @@ class DiscenteController extends Controller
                     $query->orderBy('level')->orderBy('created_at', 'desc');
                 },
                 'academicBonds.advisor:id,name',
+                'academicBonds.coAdvisor:id,name',
             ])
             ->orderBy('name')
             ->get()
@@ -34,8 +35,9 @@ class DiscenteController extends Controller
                 $masterBond = $discente->academicBonds->where('level', 'master')->first();
                 $doctorateBond = $discente->academicBonds->where('level', 'doctorate')->first();
 
-                // Get co-advisor from bonds (assuming it might be stored as a different field or logic)
-                $coAdvisor = null;
+                // Get co-advisor from bonds
+                $coAdvisor = $masterBond?->coAdvisor?->name ?? $doctorateBond?->coAdvisor?->name ?? null;
+                $coAdvisorId = $masterBond?->co_advisor_id ?? $doctorateBond?->co_advisor_id ?? null;
 
                 return [
                     'id' => $discente->id,
@@ -44,7 +46,7 @@ class DiscenteController extends Controller
                     'orientador' => $masterBond?->advisor?->name ?? $doctorateBond?->advisor?->name ?? 'Sem orientador',
                     'orientador_id' => $masterBond?->advisor_id ?? $doctorateBond?->advisor_id,
                     'co_orientador' => $coAdvisor,
-                    'co_orientador_id' => null,
+                    'co_orientador_id' => $coAdvisorId,
                     'nivel_pos_graduacao' => $doctorateBond ? 'doutorado' : ($masterBond ? 'mestrado' : 'indefinido'),
                     'mestrado_status' => $masterBond?->status ?? 'nao-iniciado',
                     'doutorado_status' => $doctorateBond?->status ?? 'nao-iniciado',
@@ -81,6 +83,7 @@ class DiscenteController extends Controller
         AcademicBond::create([
             'student_id' => $discente->id,
             'advisor_id' => $request->orientador_id,
+            'co_advisor_id' => $request->co_orientador_id,
             'agency_id' => $defaultAgency?->id ?? 1,
             'research_line_id' => $defaultResearchLine?->id ?? 1,
             'level' => $level,
@@ -110,6 +113,7 @@ class DiscenteController extends Controller
 
         $discente->load([
             'academicBonds.advisor:id,name',
+            'academicBonds.coAdvisor:id,name',
             'academicBonds' => function ($query) {
                 $query->orderBy('level')->orderBy('created_at', 'desc');
             },
@@ -124,6 +128,8 @@ class DiscenteController extends Controller
             'email' => $discente->email,
             'orientador' => $masterBond?->advisor?->name ?? $doctorateBond?->advisor?->name ?? 'Sem orientador',
             'orientador_id' => $masterBond?->advisor_id ?? $doctorateBond?->advisor_id,
+            'co_orientador' => $masterBond?->coAdvisor?->name ?? $doctorateBond?->coAdvisor?->name ?? null,
+            'co_orientador_id' => $masterBond?->co_advisor_id ?? $doctorateBond?->co_advisor_id ?? null,
             'nivel_pos_graduacao' => $doctorateBond ? 'doutorado' : ($masterBond ? 'mestrado' : 'indefinido'),
             'mestrado_status' => $masterBond?->status ?? 'nao-iniciado',
             'doutorado_status' => $doctorateBond?->status ?? 'nao-iniciado',
@@ -164,6 +170,7 @@ class DiscenteController extends Controller
                     AcademicBond::create([
                         'student_id' => $discente->id,
                         'advisor_id' => $request->orientador_id,
+                        'co_advisor_id' => $request->co_orientador_id,
                         'agency_id' => $masterBond->agency_id,
                         'research_line_id' => $masterBond->research_line_id,
                         'level' => 'doctorate',
@@ -176,9 +183,10 @@ class DiscenteController extends Controller
                     ], 422);
                 }
             } else {
-                // Update existing doctorate bond advisor
+                // Update existing doctorate bond advisor and co-advisor
                 $doctorateBond->update([
                     'advisor_id' => $request->orientador_id,
+                    'co_advisor_id' => $request->co_orientador_id,
                 ]);
             }
         } else {
@@ -193,6 +201,7 @@ class DiscenteController extends Controller
             if ($masterBond) {
                 $masterBond->update([
                     'advisor_id' => $request->orientador_id,
+                    'co_advisor_id' => $request->co_orientador_id,
                 ]);
             }
         }
@@ -234,6 +243,7 @@ class DiscenteController extends Controller
                     $query->orderBy('level')->orderBy('created_at', 'desc');
                 },
                 'academicBonds.advisor:id,name',
+                'academicBonds.coAdvisor:id,name',
             ])
             ->orderBy('deleted_at', 'desc')
             ->get()
@@ -246,7 +256,7 @@ class DiscenteController extends Controller
                     'nome' => $discente->name,
                     'email' => $discente->email,
                     'orientador' => $masterBond?->advisor?->name ?? $doctorateBond?->advisor?->name ?? 'Sem orientador',
-                    'co_orientador' => '', // To be implemented if needed
+                    'co_orientador' => $masterBond?->coAdvisor?->name ?? $doctorateBond?->coAdvisor?->name ?? '',
                     'status_mestrado' => $this->translateStatus($masterBond?->status ?? 'nao-iniciado'),
                     'status_doutorado' => $this->translateStatus($doctorateBond?->status ?? 'nao-iniciado'),
                     'data_exclusao' => $discente->deleted_at->format('d/m/Y H:i:s'),
