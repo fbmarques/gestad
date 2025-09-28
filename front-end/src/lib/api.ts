@@ -557,10 +557,43 @@ export const getStatsCounts = async (): Promise<StatsCountsResponse> => {
   return response.data;
 };
 
+// User Link Period types
+export interface UserLinkPeriod {
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface UpdateUserLinkPeriodResponse {
+  message: string;
+  academic_bond: {
+    start_date?: string;
+    end_date?: string;
+  };
+}
+
+export interface GetUserLinkPeriodResponse {
+  academic_bond: {
+    start_date?: string;
+    end_date?: string;
+  };
+}
+
 // User Basic Info API functions
 export const updateUserBasicInfo = async (data: UserBasicInfo): Promise<UpdateUserBasicInfoResponse> => {
   await api.get('/sanctum/csrf-cookie');
   const response = await api.patch<UpdateUserBasicInfoResponse>('/api/discente/basic-info', data);
+  return response.data;
+};
+
+// User Link Period API functions
+export const getUserLinkPeriod = async (): Promise<GetUserLinkPeriodResponse> => {
+  const response = await api.get<GetUserLinkPeriodResponse>('/api/student/link-period');
+  return response.data;
+};
+
+export const updateUserLinkPeriod = async (data: UserLinkPeriod): Promise<UpdateUserLinkPeriodResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateUserLinkPeriodResponse>('/api/student/link-period', data);
   return response.data;
 };
 

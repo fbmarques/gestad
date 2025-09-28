@@ -75,4 +75,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Student routes (accessible by student)
     Route::get('/student/me', [StudentController::class, 'me']);
+    Route::get('/student/link-period', [StudentController::class, 'getLinkPeriod']);
+    Route::patch('/student/link-period', [StudentController::class, 'updateLinkPeriod']);
 });
