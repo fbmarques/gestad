@@ -36,8 +36,14 @@ Route::middleware(['auth:sanctum', 'role:3'])->group(function () {
     });
 });
 
-// Routes accessible by admin (role=1) and docente (role=2)
+// Routes accessible by authenticated users
 Route::middleware('auth:sanctum')->group(function () {
+    // Profile selection page - accessible by all authenticated users
+    Route::get('/selecao', function () {
+        return view('app');
+    });
+
+    // Routes accessible by admin (role=1) and docente (role=2)
     // Both singular and plural routes for flexibility
     Route::get('/linhaspesquisa', function () {
         // Check if user has role 1 or 2
@@ -303,4 +309,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // Exclude API routes and protected routes to prevent interference
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!api|administrativo|docente|discente|login|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes).*');
+})->where('any', '^(?!api|administrativo|docente|discente|login|selecao|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes).*');
