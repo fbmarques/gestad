@@ -15,19 +15,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('academic_bond_id')->constrained('academic_bonds')->onDelete('cascade');
             $table->foreignId('event_id')->constrained('events')->onDelete('cascade');
-            $table->enum('participation_type', ['participant', 'speaker', 'organizer', 'coordinator']);
-            $table->string('title')->nullable(); // título da apresentação/palestra
-            $table->text('description')->nullable();
-            $table->date('participation_date');
-            $table->integer('hours')->nullable(); // horas de participação
-            $table->boolean('certificate_issued')->default(false);
-            $table->string('certificate_url')->nullable();
+            $table->string('title'); // título do trabalho apresentado
+            $table->string('name'); // nome do evento
+            $table->string('location'); // local do evento
+            $table->integer('year'); // ano de participação
+            $table->string('type'); // tipo: Conferência, Simpósio, Workshop, Congresso
             $table->timestamps();
 
             $table->index(['academic_bond_id']);
             $table->index(['event_id']);
-            $table->index(['participation_type']);
-            $table->index(['participation_date']);
+            $table->index(['year']);
         });
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AddUserDisciplineRequest;
+use App\Http\Requests\AddUserEventParticipationRequest;
 use App\Http\Requests\AddUserPublicationRequest;
 use App\Http\Requests\UpdateUserAcademicRequirementsRequest;
 use App\Http\Requests\UpdateUserLinkPeriodRequest;
@@ -12,6 +13,8 @@ use App\Http\Requests\UpdateUserScholarshipRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
 use App\Models\Course;
+use App\Models\Event;
+use App\Models\EventParticipation;
 use App\Models\Journal;
 use App\Models\Publication;
 use App\Models\StudentCourse;
@@ -961,5 +964,172 @@ class StudentController extends Controller
             });
 
         return response()->json($journals);
+    }
+
+    /**
+     * Get the event participations for the authenticated user's active academic bond.
+     */
+    public function getEventParticipations(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar as participações em eventos.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Get event participations with event details
+        $participations = EventParticipation::where('academic_bond_id', $academicBond->id)
+            ->with('event:id,nome,alias')
+            ->orderBy('year', 'desc')
+            ->get()
+            ->map(function ($participation) {
+                return [
+                    'id' => $participation->id,
+                    'event_id' => $participation->event_id,
+                    'event_name' => $participation->event ? $participation->event->nome : 'Evento não encontrado',
+                    'event_alias' => $participation->event ? $participation->event->alias : '',
+                    'title' => $participation->title,
+                    'name' => $participation->name,
+                    'location' => $participation->location,
+                    'year' => $participation->year,
+                    'type' => $participation->type,
+                ];
+            });
+
+        return response()->json($participations);
+    }
+
+    /**
+     * Add an event participation to the authenticated user's active academic bond.
+     */
+    public function addEventParticipation(AddUserEventParticipationRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem adicionar participações em eventos.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Create the event participation
+        $participation = EventParticipation::create([
+            'academic_bond_id' => $academicBond->id,
+            'event_id' => $request->event_id,
+            'title' => $request->title,
+            'name' => $request->name,
+            'location' => $request->location,
+            'year' => $request->year,
+            'type' => $request->type,
+        ]);
+
+        // Load the event relationship
+        $participation->load('event:id,nome,alias');
+
+        return response()->json([
+            'message' => 'Participação em evento adicionada com sucesso.',
+            'participation' => [
+                'id' => $participation->id,
+                'event_id' => $participation->event_id,
+                'event_name' => $participation->event ? $participation->event->nome : 'Evento não encontrado',
+                'event_alias' => $participation->event ? $participation->event->alias : '',
+                'title' => $participation->title,
+                'name' => $participation->name,
+                'location' => $participation->location,
+                'year' => $participation->year,
+                'type' => $participation->type,
+            ],
+        ]);
+    }
+
+    /**
+     * Remove an event participation from the authenticated user's active academic bond.
+     */
+    public function removeEventParticipation(EventParticipation $eventParticipation): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem remover participações em eventos.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Check if the event participation belongs to this student's academic bond
+        if ($eventParticipation->academic_bond_id !== $academicBond->id) {
+            return response()->json(['error' => 'Participação em evento não encontrada ou não pertence a este discente.'], 404);
+        }
+
+        $eventParticipation->delete();
+
+        return response()->json([
+            'message' => 'Participação em evento removida com sucesso.',
+        ]);
+    }
+
+    /**
+     * Get available events for selection.
+     */
+    public function getAvailableEvents(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar os eventos disponíveis.'], 403);
+        }
+
+        $events = Event::whereNull('deleted_at')
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'alias', 'tipo', 'natureza'])
+            ->map(function ($event) {
+                return [
+                    'id' => $event->id,
+                    'nome' => $event->nome,
+                    'alias' => $event->alias,
+                    'tipo' => $event->tipo,
+                    'natureza' => $event->natureza,
+                ];
+            });
+
+        return response()->json($events);
     }
 }

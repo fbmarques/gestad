@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Plus, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getStudentEventParticipations,
+  addStudentEventParticipation,
+  removeStudentEventParticipation,
+  getAvailableEvents,
+  type StudentEventParticipation,
+  type AvailableEvent,
+  type AddStudentEventParticipationRequest,
+} from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -16,77 +26,114 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface Participacao {
-  id: string;
-  evento: string;
-  nomeEvento: string;
-  tituloTrabalho: string;
-  local: string;
-  ano: number;
-  tipoTrabalho: "artigo-completo" | "artigo-resumido" | "apresentacao-oral" | "poster";
-}
-
 export const EventsSection = () => {
-  const [participacoes, setParticipacoes] = useState<Participacao[]>([
-    {
-      id: "1",
-      evento: "SBRC",
-      nomeEvento: "Simpósio Brasileiro de Redes de Computadores e Sistemas Distribuídos",
-      tituloTrabalho: "Análise de Performance em Redes 5G",
-      local: "São Paulo, SP",
-      ano: 2024,
-      tipoTrabalho: "artigo-completo"
-    },
-    {
-      id: "2",
-      evento: "SBES",
-      nomeEvento: "Simpósio Brasileiro de Engenharia de Software",
-      tituloTrabalho: "Metodologias Ágeis em Projetos de IA",
-      local: "Fortaleza, CE",
-      ano: 2023,
-      tipoTrabalho: "apresentacao-oral"
-    }
-  ]);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [eventSearch, setEventSearch] = useState("");
+  const [eventSelectOpen, setEventSelectOpen] = useState(false);
   const [formData, setFormData] = useState({
-    evento: "",
-    nomeEvento: "",
-    tituloTrabalho: "",
-    local: "",
-    ano: new Date().getFullYear().toString(),
-    tipoTrabalho: ""
+    event_id: "",
+    title: "",
+    name: "",
+    location: "",
+    year: new Date().getFullYear(),
+    type: "" as "" | "Conferência" | "Simpósio" | "Workshop" | "Congresso"
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const eventDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Mock data
-  const eventosDisponiveis = [
-    { id: "1", sigla: "SBRC", nome: "Simpósio Brasileiro de Redes de Computadores e Sistemas Distribuídos" },
-    { id: "2", sigla: "SBES", nome: "Simpósio Brasileiro de Engenharia de Software" },
-    { id: "3", sigla: "SBBD", nome: "Simpósio Brasileiro de Banco de Dados" },
-    { id: "4", sigla: "ICSE", nome: "International Conference on Software Engineering" }
-  ];
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (eventDropdownRef.current && !eventDropdownRef.current.contains(event.target as Node)) {
+        setEventSelectOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Load participations data
+  const { data: participations = [], isLoading: isLoadingParticipations } = useQuery({
+    queryKey: ['student-event-participations'],
+    queryFn: getStudentEventParticipations,
+  });
+
+  // Load available events
+  const { data: availableEvents = [] } = useQuery({
+    queryKey: ['available-events'],
+    queryFn: getAvailableEvents,
+  });
 
   const tiposTrabalho = [
-    { id: "artigo-completo", nome: "Artigo Completo" },
-    { id: "artigo-resumido", nome: "Artigo Resumido" },
-    { id: "apresentacao-oral", nome: "Apresentação Oral" },
-    { id: "poster", nome: "Poster" }
+    { id: "Conferência", nome: "Conferência" },
+    { id: "Simpósio", nome: "Simpósio" },
+    { id: "Workshop", nome: "Workshop" },
+    { id: "Congresso", nome: "Congresso" }
   ];
 
+  // Mutations
+  const addParticipationMutation = useMutation({
+    mutationFn: (data: AddStudentEventParticipationRequest) => addStudentEventParticipation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-event-participations'] });
+      setFormData({
+        event_id: "",
+        title: "",
+        name: "",
+        location: "",
+        year: new Date().getFullYear(),
+        type: ""
+      });
+      setEventSearch("");
+      setIsModalOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Participação adicionada com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.response?.data?.message || "Falha ao adicionar participação",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const removeParticipationMutation = useMutation({
+    mutationFn: (id: number) => removeStudentEventParticipation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['student-event-participations'] });
+      toast({
+        title: "Sucesso",
+        description: "Participação removida com sucesso"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.response?.data?.message || "Falha ao remover participação",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleEventoChange = (eventoId: string) => {
-    const eventoSelecionado = eventosDisponiveis.find(e => e.id === eventoId);
+    const eventoSelecionado = availableEvents.find(e => e.id.toString() === eventoId);
     setFormData(prev => ({
       ...prev,
-      evento: eventoId,
-      nomeEvento: eventoSelecionado?.nome || ""
+      event_id: eventoId,
+      name: eventoSelecionado?.nome || ""
     }));
   };
 
   const handleAddParticipacao = async () => {
-    if (!formData.evento || !formData.tituloTrabalho || !formData.local || !formData.ano || !formData.tipoTrabalho) {
+    if (!formData.event_id || !formData.title || !formData.name || !formData.location || !formData.year || !formData.type) {
       toast({
         title: "Erro",
         description: "Preencha todos os campos obrigatórios",
@@ -95,82 +142,29 @@ export const EventsSection = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const eventoSelecionado = eventosDisponiveis.find(e => e.id === formData.evento);
-
-      if (eventoSelecionado) {
-        const novaParticipacao: Participacao = {
-          id: Date.now().toString(),
-          evento: eventoSelecionado.sigla,
-          nomeEvento: formData.nomeEvento,
-          tituloTrabalho: formData.tituloTrabalho,
-          local: formData.local,
-          ano: parseInt(formData.ano),
-          tipoTrabalho: formData.tipoTrabalho as Participacao["tipoTrabalho"]
-        };
-
-        setParticipacoes(prev => [...prev, novaParticipacao]);
-        setFormData({ 
-          evento: "",
-          nomeEvento: "",
-          tituloTrabalho: "",
-          local: "",
-          ano: new Date().getFullYear().toString(),
-          tipoTrabalho: ""
-        });
-        setIsModalOpen(false);
-
-        toast({
-          title: "Sucesso",
-          description: "Participação adicionada com sucesso"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao adicionar participação",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    addParticipationMutation.mutate({
+      event_id: parseInt(formData.event_id),
+      title: formData.title,
+      name: formData.name,
+      location: formData.location,
+      year: formData.year,
+      type: formData.type as "Conferência" | "Simpósio" | "Workshop" | "Congresso",
+    });
   };
 
-  const handleRemoveParticipacao = async (id: string) => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setParticipacoes(prev => prev.filter(p => p.id !== id));
-      toast({
-        title: "Sucesso",
-        description: "Participação removida com sucesso"
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao remover participação",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getTipoTrabalhoLabel = (tipo: string) => {
-    const tipoEncontrado = tiposTrabalho.find(t => t.id === tipo);
-    return tipoEncontrado?.nome || tipo;
+  const handleRemoveParticipacao = (id: number) => {
+    removeParticipationMutation.mutate(id);
   };
 
   const getTipoTrabalhoColor = (tipo: string) => {
     switch (tipo) {
-      case "artigo-completo":
+      case "Conferência":
         return "bg-primary/10 text-primary border-primary/20";
-      case "artigo-resumido":
+      case "Simpósio":
         return "bg-secondary/10 text-secondary-foreground border-secondary/20";
-      case "apresentacao-oral":
+      case "Workshop":
         return "bg-success/10 text-success border-success/20";
-      case "poster":
+      case "Congresso":
         return "bg-warning/10 text-warning border-warning/20";
       default:
         return "bg-muted/10 text-muted-foreground border-border";
@@ -204,38 +198,92 @@ export const EventsSection = () => {
                 <DialogTitle>Adicionar Nova Participação</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Evento</label>
-                    <Select value={formData.evento} onValueChange={handleEventoChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um evento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {eventosDisponiveis.map((evento) => (
-                          <SelectItem key={evento.id} value={evento.id}>
-                            {evento.sigla} - {evento.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Evento</label>
+                  <div className="relative" ref={eventDropdownRef}>
+                    <div className="relative">
+                      <Input
+                        type="text"
+                        placeholder="Digite para buscar ou clique para ver todos..."
+                        value={
+                          formData.event_id && availableEvents
+                            ? availableEvents.find(e => e.id.toString() === formData.event_id)?.nome || eventSearch
+                            : eventSearch
+                        }
+                        onChange={(e) => {
+                          setEventSearch(e.target.value);
+                          setFormData(prev => ({ ...prev, event_id: "" })); // Limpar seleção quando digitar
+                          setEventSelectOpen(true);
+                        }}
+                        onFocus={() => setEventSelectOpen(true)}
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEventSelectOpen(!eventSelectOpen)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nome do Evento</label>
-                    <Input
-                      value={formData.nomeEvento}
-                      onChange={(e) => setFormData(prev => ({ ...prev, nomeEvento: e.target.value }))}
-                      placeholder="Nome completo do evento"
-                    />
+                    {eventSelectOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {availableEvents
+                          ?.filter((event) =>
+                            eventSearch === "" ||
+                            event.nome.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                            event.alias?.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                            event.tipo?.toLowerCase().includes(eventSearch.toLowerCase())
+                          )
+                          ?.map((event) => (
+                            <button
+                              key={event.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, event_id: event.id.toString() }));
+                                setEventSearch(event.nome);
+                                setEventSelectOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-sm">
+                                {event.alias} - {event.nome} {event.tipo && <span className="text-blue-600">({event.tipo})</span>}
+                              </div>
+                            </button>
+                          )) || (
+                          <div className="px-3 py-2 text-gray-500 text-sm">Carregando eventos...</div>
+                        )}
+
+                        {availableEvents && availableEvents.length > 0 && eventSearch !== "" &&
+                         availableEvents.filter((event) =>
+                           event.nome.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                           event.alias?.toLowerCase().includes(eventSearch.toLowerCase()) ||
+                           event.tipo?.toLowerCase().includes(eventSearch.toLowerCase())
+                         ).length === 0 && (
+                          <div className="px-3 py-2 text-gray-500 text-sm">Nenhum evento encontrado para "{eventSearch}"</div>
+                        )}
+                      </div>
+                    )}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nome do Evento</label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Nome completo do evento"
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Título do Trabalho</label>
                   <Input
-                    value={formData.tituloTrabalho}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tituloTrabalho: e.target.value }))}
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Digite o título do trabalho apresentado"
                   />
                 </div>
@@ -244,8 +292,8 @@ export const EventsSection = () => {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Local</label>
                     <Input
-                      value={formData.local}
-                      onChange={(e) => setFormData(prev => ({ ...prev, local: e.target.value }))}
+                      value={formData.location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="Cidade, Estado/País"
                     />
                   </div>
@@ -254,8 +302,8 @@ export const EventsSection = () => {
                     <label className="text-sm font-medium">Ano</label>
                     <Input
                       type="number"
-                      value={formData.ano}
-                      onChange={(e) => setFormData(prev => ({ ...prev, ano: e.target.value }))}
+                      value={formData.year.toString()}
+                      onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) || new Date().getFullYear() }))}
                       min="2000"
                       max="2030"
                     />
@@ -268,8 +316,8 @@ export const EventsSection = () => {
                     {tiposTrabalho.map((tipo) => (
                       <Button
                         key={tipo.id}
-                        variant={formData.tipoTrabalho === tipo.id ? "default" : "outline"}
-                        onClick={() => setFormData(prev => ({ ...prev, tipoTrabalho: tipo.id }))}
+                        variant={formData.type === tipo.id ? "default" : "outline"}
+                        onClick={() => setFormData(prev => ({ ...prev, type: tipo.id as "Conferência" | "Simpósio" | "Workshop" | "Congresso" }))}
                         className="justify-start"
                       >
                         {tipo.nome}
@@ -282,8 +330,8 @@ export const EventsSection = () => {
                   <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1">
                     Cancelar
                   </Button>
-                  <Button onClick={handleAddParticipacao} disabled={isLoading} className="flex-1">
-                    {isLoading ? "Salvando..." : "Salvar"}
+                  <Button onClick={handleAddParticipacao} disabled={addParticipationMutation.isPending} className="flex-1">
+                    {addParticipationMutation.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </div>
@@ -304,53 +352,72 @@ export const EventsSection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {participacoes.map((participacao) => (
-                <TableRow key={participacao.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <div className="font-semibold">{participacao.evento}</div>
-                      <div className="text-xs text-muted-foreground max-w-xs" title={participacao.nomeEvento}>
-                        {truncateText(participacao.nomeEvento, 40)}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-xs">
-                    <span title={participacao.tituloTrabalho}>
-                      {truncateText(participacao.tituloTrabalho, 50)}
-                    </span>
-                  </TableCell>
-                  <TableCell>{participacao.local}</TableCell>
-                  <TableCell>{participacao.ano}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTipoTrabalhoColor(participacao.tipoTrabalho)}`}>
-                      {getTipoTrabalhoLabel(participacao.tipoTrabalho)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir a participação "{participacao.tituloTrabalho}" do evento {participacao.evento}? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleRemoveParticipacao(participacao.id)}>
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+              {isLoadingParticipations ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Carregando participações...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : participations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhuma participação encontrada. Adicione sua primeira participação!
+                  </TableCell>
+                </TableRow>
+              ) : (
+                participations.map((participation) => (
+                  <TableRow key={participation.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div className="font-semibold">{participation.event_alias}</div>
+                        <div className="text-xs text-muted-foreground max-w-xs" title={participation.name}>
+                          {truncateText(participation.name, 40)}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      <span title={participation.title}>
+                        {truncateText(participation.title, 50)}
+                      </span>
+                    </TableCell>
+                    <TableCell>{participation.location}</TableCell>
+                    <TableCell>{participation.year}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTipoTrabalhoColor(participation.type)}`}>
+                        {participation.type}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
+                            disabled={removeParticipationMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja excluir a participação "{participation.title}" do evento {participation.event_alias}? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleRemoveParticipacao(participation.id)}>
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

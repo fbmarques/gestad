@@ -861,4 +861,62 @@ export const getAvailableJournals = async (): Promise<AvailableJournal[]> => {
   return response.data;
 };
 
+// Student Event Participations types
+export interface StudentEventParticipation {
+  id: number;
+  event_id: number;
+  event_name: string;
+  event_alias: string;
+  title: string;
+  name: string;
+  location: string;
+  year: number;
+  type: 'Conferência' | 'Simpósio' | 'Workshop' | 'Congresso';
+}
+
+export interface AvailableEvent {
+  id: number;
+  nome: string;
+  alias: string;
+  tipo: string;
+  natureza: string;
+}
+
+export interface AddStudentEventParticipationRequest {
+  event_id: number;
+  title: string;
+  name: string;
+  location: string;
+  year: number;
+  type: 'Conferência' | 'Simpósio' | 'Workshop' | 'Congresso';
+}
+
+export interface AddStudentEventParticipationResponse {
+  message: string;
+  participation: StudentEventParticipation;
+}
+
+// Student Event Participations API functions
+export const getStudentEventParticipations = async (): Promise<StudentEventParticipation[]> => {
+  const response = await api.get<StudentEventParticipation[]>('/api/student/event-participations');
+  return response.data;
+};
+
+export const addStudentEventParticipation = async (data: AddStudentEventParticipationRequest): Promise<AddStudentEventParticipationResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post<AddStudentEventParticipationResponse>('/api/student/event-participations', data);
+  return response.data;
+};
+
+export const removeStudentEventParticipation = async (participationId: number): Promise<{ message: string }> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.delete<{ message: string }>(`/api/student/event-participations/${participationId}`);
+  return response.data;
+};
+
+export const getAvailableEvents = async (): Promise<AvailableEvent[]> => {
+  const response = await api.get<AvailableEvent[]>('/api/student/available-events');
+  return response.data;
+};
+
 export default api;
