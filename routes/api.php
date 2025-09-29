@@ -9,6 +9,7 @@ use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicationController;
 use App\Http\Controllers\ResearchLineController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\StudentController;
@@ -98,4 +99,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/student/event-participations', [StudentController::class, 'addEventParticipation']);
     Route::delete('/student/event-participations/{eventParticipation}', [StudentController::class, 'removeEventParticipation']);
     Route::get('/student/available-events', [StudentController::class, 'getAvailableEvents']);
+
+    // Publications management routes (accessible by admin and docente)
+    Route::get('/publications/pending', [PublicationController::class, 'pending']);
+    Route::get('/publications/approved', [PublicationController::class, 'approved']);
+    Route::get('/publications/rejected', [PublicationController::class, 'rejected']);
+    Route::patch('/publications/{publication}/approve', [PublicationController::class, 'approve']);
+    Route::patch('/publications/{publication}/reject', [PublicationController::class, 'reject']);
 });

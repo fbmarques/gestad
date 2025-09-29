@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,30 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { getApprovedPublications, getRejectedPublications, PublicationForApproval } from "@/lib/api";
 
-interface Producao {
-  id: string;
-  titulo: string;
-  discente: string;
-  docente: string;
-  periodico: string;
-  qualis: string;
-  dataPublicacao: string;
-  status: "deferida" | "indeferida";
-}
-
-const baseProducoes: Omit<Producao, "status">[] = [
-  { id: "1", titulo: "Machine Learning Applications in Software Engineering", discente: "João Silva", docente: "Dr. Maria Santos", periodico: "IEEE Software", qualis: "A1", dataPublicacao: "2024-03-15" },
-  { id: "2", titulo: "Análise de Redes Sociais usando Mineração de Dados", discente: "Ana Costa", docente: "Dr. Pedro Lima", periodico: "Revista Brasileira de Informática", qualis: "B1", dataPublicacao: "2024-02-20" },
-  { id: "3", titulo: "Deep Learning for Image Recognition Systems", discente: "Carlos Oliveira", docente: "Dra. Julia Fernandes", periodico: "Computer Vision Journal", qualis: "A2", dataPublicacao: "2024-01-10" },
-  { id: "4", titulo: "Segurança em Sistemas Distribuídos", discente: "Marina Rodrigues", docente: "Dr. Roberto Alves", periodico: "Security & Privacy", qualis: "A1", dataPublicacao: "2024-04-05" },
-  { id: "5", titulo: "Blockchain Technology in Healthcare", discente: "Felipe Santos", docente: "Dra. Ana Carolina", periodico: "Health Informatics", qualis: "B2", dataPublicacao: "2024-03-28" },
-  { id: "6", titulo: "Algoritmos Genéticos para Otimização", discente: "Lucia Fernandes", docente: "Dr. Carlos Eduardo", periodico: "Evolutionary Computation", qualis: "A2", dataPublicacao: "2024-02-14" },
-  { id: "7", titulo: "Internet das Coisas em Smart Cities", discente: "Rafael Pereira", docente: "Dra. Mariana Costa", periodico: "IoT Journal", qualis: "B1", dataPublicacao: "2024-01-22" },
-  { id: "8", titulo: "Natural Language Processing Techniques", discente: "Camila Souza", docente: "Dr. Paulo Ricardo", periodico: "Computational Linguistics", qualis: "A1", dataPublicacao: "2024-04-12" },
-  { id: "9", titulo: "Realidade Virtual em Educação", discente: "Bruno Lima", docente: "Dra. Sandra Melo", periodico: "Educational Technology", qualis: "B2", dataPublicacao: "2024-03-03" },
-  { id: "10", titulo: "Cloud Computing Security Models", discente: "Isabela Martins", docente: "Dr. Fernando Silva", periodico: "Cloud Computing Review", qualis: "A2", dataPublicacao: "2024-02-08" },
-];
 
 const ProducoesStatus = () => {
   const { isDarkMode, toggleTheme } = useTheme();
@@ -43,17 +22,22 @@ const ProducoesStatus = () => {
     document.title = "Publicações Deferidas e Indeferidas | GESTAD";
   }, []);
 
-  const producoes: Producao[] = useMemo(
-    () =>
-      baseProducoes.map((p, idx) => ({
-        ...p,
-        status: idx % 2 === 0 ? "deferida" : "indeferida",
-      })),
-    []
-  );
+  // Fetch approved publications
+  const { data: approvedPublications = [], isLoading: isLoadingApproved } = useQuery({
+    queryKey: ['approved-publications'],
+    queryFn: getApprovedPublications,
+  });
+
+  // Fetch rejected publications
+  const { data: rejectedPublications = [], isLoading: isLoadingRejected } = useQuery({
+    queryKey: ['rejected-publications'],
+    queryFn: getRejectedPublications,
+  });
+
+  const producoes = tab === "deferida" ? approvedPublications : rejectedPublications;
+  const isLoading = tab === "deferida" ? isLoadingApproved : isLoadingRejected;
 
   const filtered = producoes
-    .filter((p) => p.status === tab)
     .filter((p) =>
       [p.titulo, p.discente, p.docente, p.periodico, p.qualis]
         .join(" ")
@@ -140,17 +124,24 @@ const ProducoesStatus = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {currentItems.map((p) => (
-                            <TableRow key={p.id}>
-                              <TableCell className="font-medium">{p.titulo}</TableCell>
-                              <TableCell>{p.discente}</TableCell>
-                              <TableCell>{p.docente}</TableCell>
-                              <TableCell>{p.periodico}</TableCell>
-                              <TableCell>{p.qualis}</TableCell>
-                              <TableCell>{new Date(p.dataPublicacao).toLocaleDateString('pt-BR')}</TableCell>
+                          {isLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                Carregando...
+                              </TableCell>
                             </TableRow>
-                          ))}
-                          {currentItems.length === 0 && (
+                          ) : currentItems.length > 0 ? (
+                            currentItems.map((p) => (
+                              <TableRow key={p.id}>
+                                <TableCell className="font-medium">{p.titulo}</TableCell>
+                                <TableCell>{p.discente}</TableCell>
+                                <TableCell>{p.docente}</TableCell>
+                                <TableCell>{p.periodico}</TableCell>
+                                <TableCell>{p.qualis}</TableCell>
+                                <TableCell>{p.dataPublicacao}</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
                             <TableRow>
                               <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                 {searchTerm ? "Nenhuma produção encontrada" : "Nenhum registro para exibir"}
@@ -221,17 +212,24 @@ const ProducoesStatus = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {currentItems.map((p) => (
-                            <TableRow key={p.id}>
-                              <TableCell className="font-medium">{p.titulo}</TableCell>
-                              <TableCell>{p.discente}</TableCell>
-                              <TableCell>{p.docente}</TableCell>
-                              <TableCell>{p.periodico}</TableCell>
-                              <TableCell>{p.qualis}</TableCell>
-                              <TableCell>{new Date(p.dataPublicacao).toLocaleDateString('pt-BR')}</TableCell>
+                          {isLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                Carregando...
+                              </TableCell>
                             </TableRow>
-                          ))}
-                          {currentItems.length === 0 && (
+                          ) : currentItems.length > 0 ? (
+                            currentItems.map((p) => (
+                              <TableRow key={p.id}>
+                                <TableCell className="font-medium">{p.titulo}</TableCell>
+                                <TableCell>{p.discente}</TableCell>
+                                <TableCell>{p.docente}</TableCell>
+                                <TableCell>{p.periodico}</TableCell>
+                                <TableCell>{p.qualis}</TableCell>
+                                <TableCell>{p.dataPublicacao}</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
                             <TableRow>
                               <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                 {searchTerm ? "Nenhuma produção encontrada" : "Nenhum registro para exibir"}

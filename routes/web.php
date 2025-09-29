@@ -302,6 +302,43 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return view('app');
     });
+
+    // Publications routes (accessible by admin and docente)
+    Route::get('/producoes', function () {
+        // Check if user has role 1 or 2
+        $user = auth()->user();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [1, 2])->exists();
+
+        if (! $hasAccess) {
+            return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);
+        }
+
+        return view('app');
+    });
+
+    Route::get('/producao', function () {
+        // Check if user has role 1 or 2
+        $user = auth()->user();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [1, 2])->exists();
+
+        if (! $hasAccess) {
+            return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);
+        }
+
+        return view('app');
+    });
+
+    Route::get('/producoes-status', function () {
+        // Check if user has role 1 or 2
+        $user = auth()->user();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [1, 2])->exists();
+
+        if (! $hasAccess) {
+            return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);
+        }
+
+        return view('app');
+    });
 });
 
 // Catch-all route for React Router (SPA)
@@ -309,4 +346,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // Exclude API routes and protected routes to prevent interference
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!api|administrativo|docente|discente|login|selecao|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes).*');
+})->where('any', '^(?!api|administrativo|docente|discente|login|selecao|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes|producoes|producao|producoes-status).*');

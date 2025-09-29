@@ -919,4 +919,54 @@ export const getAvailableEvents = async (): Promise<AvailableEvent[]> => {
   return response.data;
 };
 
+// Publications Management types (for admin/docente)
+export interface PublicationForApproval {
+  id: number;
+  titulo: string;
+  discente: string;
+  docente: string;
+  periodico: string;
+  qualis: string;
+  dataPublicacao: string;
+  status: 'P' | 'D' | 'I';
+}
+
+export interface ApprovePublicationResponse {
+  message: string;
+  publication: any;
+}
+
+export interface RejectPublicationResponse {
+  message: string;
+  publication: any;
+}
+
+// Publications Management API functions (for admin/docente)
+export const getPendingPublications = async (): Promise<PublicationForApproval[]> => {
+  const response = await api.get<PublicationForApproval[]>('/api/publications/pending');
+  return response.data;
+};
+
+export const getApprovedPublications = async (): Promise<PublicationForApproval[]> => {
+  const response = await api.get<PublicationForApproval[]>('/api/publications/approved');
+  return response.data;
+};
+
+export const getRejectedPublications = async (): Promise<PublicationForApproval[]> => {
+  const response = await api.get<PublicationForApproval[]>('/api/publications/rejected');
+  return response.data;
+};
+
+export const approvePublication = async (publicationId: number): Promise<ApprovePublicationResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<ApprovePublicationResponse>(`/api/publications/${publicationId}/approve`);
+  return response.data;
+};
+
+export const rejectPublication = async (publicationId: number): Promise<RejectPublicationResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<RejectPublicationResponse>(`/api/publications/${publicationId}/reject`);
+  return response.data;
+};
+
 export default api;

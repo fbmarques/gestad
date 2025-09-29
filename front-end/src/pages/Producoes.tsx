@@ -1,57 +1,87 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ThumbsUp, ThumbsDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getPendingPublications, approvePublication, rejectPublication, PublicationForApproval } from "@/lib/api";
 
-interface Producao {
-  id: string;
-  titulo: string;
-  discente: string;
-  docente: string;
-  periodico: string;
-  qualis: string;
-  dataPublicacao: string;
+interface ConfirmationModal {
+  isOpen: boolean;
+  type: 'approve' | 'reject' | null;
+  publication: PublicationForApproval | null;
 }
-
-const mockProducoes: Producao[] = [
-  { id: "1", titulo: "Machine Learning Applications in Software Engineering", discente: "João Silva", docente: "Dr. Maria Santos", periodico: "IEEE Software", qualis: "A1", dataPublicacao: "2024-03-15" },
-  { id: "2", titulo: "Análise de Redes Sociais usando Mineração de Dados", discente: "Ana Costa", docente: "Dr. Pedro Lima", periodico: "Revista Brasileira de Informática", qualis: "B1", dataPublicacao: "2024-02-20" },
-  { id: "3", titulo: "Deep Learning for Image Recognition Systems", discente: "Carlos Oliveira", docente: "Dra. Julia Fernandes", periodico: "Computer Vision Journal", qualis: "A2", dataPublicacao: "2024-01-10" },
-  { id: "4", titulo: "Segurança em Sistemas Distribuídos", discente: "Marina Rodrigues", docente: "Dr. Roberto Alves", periodico: "Security & Privacy", qualis: "A1", dataPublicacao: "2024-04-05" },
-  { id: "5", titulo: "Blockchain Technology in Healthcare", discente: "Felipe Santos", docente: "Dra. Ana Carolina", periodico: "Health Informatics", qualis: "B2", dataPublicacao: "2024-03-28" },
-  { id: "6", titulo: "Algoritmos Genéticos para Otimização", discente: "Lucia Fernandes", docente: "Dr. Carlos Eduardo", periodico: "Evolutionary Computation", qualis: "A2", dataPublicacao: "2024-02-14" },
-  { id: "7", titulo: "Internet das Coisas em Smart Cities", discente: "Rafael Pereira", docente: "Dra. Mariana Costa", periodico: "IoT Journal", qualis: "B1", dataPublicacao: "2024-01-22" },
-  { id: "8", titulo: "Natural Language Processing Techniques", discente: "Camila Souza", docente: "Dr. Paulo Ricardo", periodico: "Computational Linguistics", qualis: "A1", dataPublicacao: "2024-04-12" },
-  { id: "9", titulo: "Realidade Virtual em Educação", discente: "Bruno Lima", docente: "Dra. Sandra Melo", periodico: "Educational Technology", qualis: "B2", dataPublicacao: "2024-03-03" },
-  { id: "10", titulo: "Cloud Computing Security Models", discente: "Isabela Martins", docente: "Dr. Fernando Silva", periodico: "Cloud Computing Review", qualis: "A2", dataPublicacao: "2024-02-08" },
-  { id: "11", titulo: "Bioinformática Aplicada à Genômica", discente: "Thiago Barbosa", docente: "Dra. Patrícia Rocha", periodico: "Bioinformatics Journal", qualis: "A1", dataPublicacao: "2024-01-18" },
-  { id: "12", titulo: "Sistemas Embarcados para Robótica", discente: "Natália Gomes", docente: "Dr. Marcos Vieira", periodico: "Robotics & Automation", qualis: "B1", dataPublicacao: "2024-04-01" },
-  { id: "13", titulo: "Quantum Computing Algorithms", discente: "Gustavo Almeida", docente: "Dra. Carla Nascimento", periodico: "Quantum Information", qualis: "A1", dataPublicacao: "2024-03-20" },
-  { id: "14", titulo: "Análise de Big Data em Tempo Real", discente: "Larissa Castro", docente: "Dr. André Campos", periodico: "Big Data Analytics", qualis: "A2", dataPublicacao: "2024-02-25" },
-  { id: "15", titulo: "Jogos Digitais e Aprendizagem", discente: "Diego Ribeiro", docente: "Dra. Mônica Teixeira", periodico: "Games & Learning", qualis: "B2", dataPublicacao: "2024-01-30" },
-  { id: "16", titulo: "Modelagem de Sistemas Complexos", discente: "Amanda Cardoso", docente: "Dr. Sérgio Monteiro", periodico: "Complex Systems", qualis: "B1", dataPublicacao: "2024-04-08" },
-  { id: "17", titulo: "Redes Neurais Convolucionais", discente: "Leandro Moreira", docente: "Dra. Beatriz Cunha", periodico: "Neural Networks", qualis: "A1", dataPublicacao: "2024-03-12" },
-  { id: "18", titulo: "Processamento de Sinais Digitais", discente: "Priscila Dias", docente: "Dr. Rodrigo Nunes", periodico: "Signal Processing", qualis: "A2", dataPublicacao: "2024-02-18" },
-  { id: "19", titulo: "Computação Paralela e Distribuída", discente: "Mateus Freitas", docente: "Dra. Renata Lopes", periodico: "Parallel Computing", qualis: "A1", dataPublicacao: "2024-01-25" },
-  { id: "20", titulo: "Interfaces Naturais de Usuário", discente: "Vanessa Torres", docente: "Dr. Fábio Correia", periodico: "HCI International", qualis: "B1", dataPublicacao: "2024-04-15" }
-];
 
 const Producoes = () => {
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
-  const [producoes, setProducoes] = useState<Producao[]>(mockProducoes);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [modal, setModal] = useState<ConfirmationModal>({ isOpen: false, type: null, publication: null });
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    document.title = "Aprovação de Produções | GESTAD";
+  }, []);
+
+  // Fetch pending publications
+  const { data: producoes = [], isLoading } = useQuery({
+    queryKey: ['pending-publications'],
+    queryFn: getPendingPublications,
+  });
+
+  // Mutation for approving publication
+  const approveMutation = useMutation({
+    mutationFn: approvePublication,
+    onSuccess: (data) => {
+      toast({
+        title: "Sucesso",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['pending-publications'] });
+      queryClient.invalidateQueries({ queryKey: ['approved-publications'] });
+      setModal({ isOpen: false, type: null, publication: null });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error?.response?.data?.error || "Erro ao deferir publicação.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for rejecting publication
+  const rejectMutation = useMutation({
+    mutationFn: rejectPublication,
+    onSuccess: (data) => {
+      toast({
+        title: "Sucesso",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['pending-publications'] });
+      queryClient.invalidateQueries({ queryKey: ['rejected-publications'] });
+      setModal({ isOpen: false, type: null, publication: null });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error?.response?.data?.error || "Erro ao indeferir publicação.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const filteredProducoes = producoes.filter(producao =>
     producao.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,14 +97,26 @@ const Producoes = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentProducoes = filteredProducoes.slice(startIndex, endIndex);
 
-  const handleApprove = (id: string) => {
-    console.log("Aprovado:", id);
-    // Aqui seria implementada a lógica de aprovação
+  const handleApprove = (publication: PublicationForApproval) => {
+    setModal({ isOpen: true, type: 'approve', publication });
   };
 
-  const handleReject = (id: string) => {
-    console.log("Rejeitado:", id);
-    // Aqui seria implementada a lógica de rejeição
+  const handleReject = (publication: PublicationForApproval) => {
+    setModal({ isOpen: true, type: 'reject', publication });
+  };
+
+  const confirmAction = () => {
+    if (!modal.publication) return;
+
+    if (modal.type === 'approve') {
+      approveMutation.mutate(modal.publication.id);
+    } else if (modal.type === 'reject') {
+      rejectMutation.mutate(modal.publication.id);
+    }
+  };
+
+  const cancelAction = () => {
+    setModal({ isOpen: false, type: null, publication: null });
   };
 
   const handlePageChange = (page: number) => {
@@ -102,7 +144,7 @@ const Producoes = () => {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Aprovação de Produções</CardTitle>
                 <Button variant="outline" size="sm" onClick={() => navigate('/producoes-status')}>
-                  Situação
+                  Arquivo
                 </Button>
               </CardHeader>
               <CardContent>
@@ -152,52 +194,63 @@ const Producoes = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {currentProducoes.map((producao) => (
-                          <TableRow key={producao.id}>
-                            <TableCell className="font-medium">{producao.titulo}</TableCell>
-                            <TableCell>{producao.discente}</TableCell>
-                            <TableCell>{producao.docente}</TableCell>
-                            <TableCell>{producao.periodico}</TableCell>
-                            <TableCell>{producao.qualis}</TableCell>
-                            <TableCell>{new Date(producao.dataPublicacao).toLocaleDateString('pt-BR')}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="icon" 
-                                      className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
-                                      onClick={() => handleApprove(producao.id)}
-                                    >
-                                      <ThumbsUp className="w-4 h-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Deferido</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                                
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="icon" 
-                                      className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
-                                      onClick={() => handleReject(producao.id)}
-                                    >
-                                      <ThumbsDown className="w-4 h-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Indeferido</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              Carregando...
                             </TableCell>
                           </TableRow>
-                        ))}
-                        {currentProducoes.length === 0 && (
+                        ) : currentProducoes.length > 0 ? (
+                          currentProducoes.map((producao) => (
+                            <TableRow key={producao.id}>
+                              <TableCell className="font-medium">{producao.titulo}</TableCell>
+                              <TableCell>{producao.discente}</TableCell>
+                              <TableCell>{producao.docente}</TableCell>
+                              <TableCell>{producao.periodico}</TableCell>
+                              <TableCell>{producao.qualis}</TableCell>
+                              <TableCell>{producao.dataPublicacao}</TableCell>
+                              <TableCell>
+                                <TooltipProvider>
+                                  <div className="flex gap-1">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="icon"
+                                          className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
+                                          onClick={() => handleApprove(producao)}
+                                          disabled={approveMutation.isPending || rejectMutation.isPending}
+                                        >
+                                          <ThumbsUp className="w-4 h-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Deferido</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="icon"
+                                          className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
+                                          onClick={() => handleReject(producao)}
+                                          disabled={approveMutation.isPending || rejectMutation.isPending}
+                                        >
+                                          <ThumbsDown className="w-4 h-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Indeferido</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </TooltipProvider>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
                           <TableRow>
                             <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Nenhuma produção encontrada" : "Nenhum registro para exibir"}
@@ -274,6 +327,54 @@ const Producoes = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <Dialog open={modal.isOpen} onOpenChange={() => setModal({ isOpen: false, type: null, publication: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {modal.type === 'approve' ? 'Deferir Publicação' : 'Indeferir Publicação'}
+            </DialogTitle>
+            <DialogDescription>
+              {modal.type === 'approve'
+                ? 'Você tem certeza que deseja deferir esta publicação?'
+                : 'Você tem certeza que deseja indeferir esta publicação?'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          {modal.publication && (
+            <div className="py-4">
+              <div className="space-y-2">
+                <div><strong>Título:</strong> {modal.publication.titulo}</div>
+                <div><strong>Discente:</strong> {modal.publication.discente}</div>
+                <div><strong>Docente:</strong> {modal.publication.docente}</div>
+                <div><strong>Periódico:</strong> {modal.publication.periodico}</div>
+                <div><strong>Qualis:</strong> {modal.publication.qualis}</div>
+                <div><strong>Data de Publicação:</strong> {modal.publication.dataPublicacao}</div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={cancelAction}
+              disabled={approveMutation.isPending || rejectMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant={modal.type === 'approve' ? 'default' : 'destructive'}
+              onClick={confirmAction}
+              disabled={approveMutation.isPending || rejectMutation.isPending}
+            >
+              {approveMutation.isPending || rejectMutation.isPending ? 'Processando...' :
+               modal.type === 'approve' ? 'Deferir' : 'Indeferir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
