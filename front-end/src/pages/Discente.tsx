@@ -6,8 +6,6 @@ import { BasicInfoSection } from "@/components/discente/BasicInfoSection";
 import { LinkPeriodSection } from "@/components/discente/LinkPeriodSection";
 import { ScholarshipSection } from "@/components/discente/ScholarshipSection";
 import { ResearchDefinitionsSection } from "@/components/discente/ResearchDefinitionsSection";
-import { AcademicRequirementsSection } from "@/components/discente/AcademicRequirementsSection";
-import { AcademicRequirementsSteps } from "@/components/discente/AcademicRequirementsSteps";
 import { AcademicRequirementsVerticalSteps } from "@/components/discente/AcademicRequirementsVerticalSteps";
 import { DisciplinesSection } from "@/components/discente/DisciplinesSection";
 import { ProductionsSection } from "@/components/discente/ProductionsSection";

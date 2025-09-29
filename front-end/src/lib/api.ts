@@ -791,4 +791,74 @@ export const getAvailableTeachers = async (): Promise<AvailableTeacher[]> => {
   return response.data;
 };
 
+// Student Publications types
+export interface StudentPublication {
+  id: number;
+  title: string;
+  journal: string;
+  journal_id: number;
+  submission_date: string;
+  approval_date: string | null;
+  publication_date: string | null;
+  status: 'S' | 'A' | 'P' | 'E' | 'D' | 'I';
+  status_display: string;
+  can_select_for_pdf: boolean;
+}
+
+export interface AvailableJournal {
+  id: number;
+  name: string;
+  qualis: string | null;
+}
+
+export interface AddStudentPublicationRequest {
+  journal_id: number;
+  title: string;
+  submission_date: string;
+}
+
+export interface UpdateStudentPublicationRequest {
+  approval_date?: string | null;
+  publication_date?: string | null;
+}
+
+export interface AddStudentPublicationResponse {
+  message: string;
+  publication: StudentPublication;
+}
+
+export interface UpdateStudentPublicationResponse {
+  message: string;
+  publication: StudentPublication;
+}
+
+// Student Publications API functions
+export const getStudentPublications = async (): Promise<StudentPublication[]> => {
+  const response = await api.get<StudentPublication[]>('/api/student/publications');
+  return response.data;
+};
+
+export const addStudentPublication = async (data: AddStudentPublicationRequest): Promise<AddStudentPublicationResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post<AddStudentPublicationResponse>('/api/student/publications', data);
+  return response.data;
+};
+
+export const updateStudentPublication = async (publicationId: number, data: UpdateStudentPublicationRequest): Promise<UpdateStudentPublicationResponse> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.patch<UpdateStudentPublicationResponse>(`/api/student/publications/${publicationId}`, data);
+  return response.data;
+};
+
+export const removeStudentPublication = async (publicationId: number): Promise<{ message: string }> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.delete<{ message: string }>(`/api/student/publications/${publicationId}`);
+  return response.data;
+};
+
+export const getAvailableJournals = async (): Promise<AvailableJournal[]> => {
+  const response = await api.get<AvailableJournal[]>('/api/student/available-journals');
+  return response.data;
+};
+
 export default api;

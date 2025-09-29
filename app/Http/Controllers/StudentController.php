@@ -3,13 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AddUserDisciplineRequest;
+use App\Http\Requests\AddUserPublicationRequest;
 use App\Http\Requests\UpdateUserAcademicRequirementsRequest;
 use App\Http\Requests\UpdateUserLinkPeriodRequest;
+use App\Http\Requests\UpdateUserPublicationRequest;
 use App\Http\Requests\UpdateUserResearchDefinitionsRequest;
 use App\Http\Requests\UpdateUserScholarshipRequest;
 use App\Models\AcademicBond;
 use App\Models\Agency;
 use App\Models\Course;
+use App\Models\Journal;
+use App\Models\Publication;
 use App\Models\StudentCourse;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -716,5 +720,246 @@ class StudentController extends Controller
             });
 
         return response()->json($teachers);
+    }
+
+    /**
+     * Get the publications for the authenticated user's active academic bond.
+     */
+    public function getPublications(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar as publicações.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Get publications with journal details
+        $publications = Publication::where('academic_bond_id', $academicBond->id)
+            ->with('journal:id,name')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($publication) {
+                return [
+                    'id' => $publication->id,
+                    'title' => $publication->title,
+                    'journal' => $publication->journal ? $publication->journal->name : 'Sem periódico',
+                    'journal_id' => $publication->journal_id,
+                    'submission_date' => $publication->submission_date?->format('Y-m-d'),
+                    'approval_date' => $publication->approval_date?->format('Y-m-d'),
+                    'publication_date' => $publication->publication_date?->format('Y-m-d'),
+                    'status' => $publication->status,
+                    'status_display' => $publication->status_display,
+                    'can_select_for_pdf' => $publication->canBeSelectedForPdf(),
+                ];
+            });
+
+        return response()->json($publications);
+    }
+
+    /**
+     * Add a publication to the authenticated user's active academic bond.
+     */
+    public function addPublication(AddUserPublicationRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem adicionar publicações.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Create the publication
+        $publication = Publication::create([
+            'academic_bond_id' => $academicBond->id,
+            'journal_id' => $request->journal_id,
+            'title' => $request->title,
+            'authors' => [$user->name], // Student is the primary author
+            'submission_date' => $request->submission_date,
+            'status' => 'S', // Always starts as submitted
+            'qualis_rating' => 'B4', // Default qualis rating for new submissions
+            'program_evaluation' => 'pending', // Default evaluation status
+        ]);
+
+        // Load the journal relationship
+        $publication->load('journal:id,name');
+
+        return response()->json([
+            'message' => 'Publicação adicionada com sucesso.',
+            'publication' => [
+                'id' => $publication->id,
+                'title' => $publication->title,
+                'journal' => $publication->journal ? $publication->journal->name : 'Sem periódico',
+                'journal_id' => $publication->journal_id,
+                'submission_date' => $publication->submission_date?->format('Y-m-d'),
+                'approval_date' => $publication->approval_date?->format('Y-m-d'),
+                'publication_date' => $publication->publication_date?->format('Y-m-d'),
+                'status' => $publication->status,
+                'status_display' => $publication->status_display,
+                'can_select_for_pdf' => $publication->canBeSelectedForPdf(),
+            ],
+        ]);
+    }
+
+    /**
+     * Update a publication from the authenticated user's active academic bond.
+     */
+    public function updatePublication(Publication $publication, UpdateUserPublicationRequest $request): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem atualizar publicações.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Check if the publication belongs to this student's academic bond
+        if ($publication->academic_bond_id !== $academicBond->id) {
+            return response()->json(['error' => 'Publicação não encontrada ou não pertence a este discente.'], 404);
+        }
+
+        // Update only the fields that were provided
+        $fieldsToUpdate = [];
+
+        if ($request->has('approval_date')) {
+            $fieldsToUpdate['approval_date'] = $request->approval_date;
+            // When approval date is set, update status to approved
+            if ($request->approval_date) {
+                $fieldsToUpdate['status'] = 'A';
+            }
+        }
+
+        if ($request->has('publication_date')) {
+            $fieldsToUpdate['publication_date'] = $request->publication_date;
+            // When publication date is set, update status to published
+            if ($request->publication_date) {
+                $fieldsToUpdate['status'] = 'P';
+            }
+        }
+
+        if (! empty($fieldsToUpdate)) {
+            $publication->update($fieldsToUpdate);
+            $publication->refresh();
+        }
+
+        // Load the journal relationship
+        $publication->load('journal:id,name');
+
+        return response()->json([
+            'message' => 'Publicação atualizada com sucesso.',
+            'publication' => [
+                'id' => $publication->id,
+                'title' => $publication->title,
+                'journal' => $publication->journal ? $publication->journal->name : 'Sem periódico',
+                'journal_id' => $publication->journal_id,
+                'submission_date' => $publication->submission_date?->format('Y-m-d'),
+                'approval_date' => $publication->approval_date?->format('Y-m-d'),
+                'publication_date' => $publication->publication_date?->format('Y-m-d'),
+                'status' => $publication->status,
+                'status_display' => $publication->status_display,
+                'can_select_for_pdf' => $publication->canBeSelectedForPdf(),
+            ],
+        ]);
+    }
+
+    /**
+     * Remove a publication from the authenticated user's active academic bond.
+     */
+    public function removePublication(Publication $publication): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem remover publicações.'], 403);
+        }
+
+        // Find the active academic bond for this student
+        $academicBond = AcademicBond::where('student_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
+        if (! $academicBond) {
+            return response()->json(['error' => 'Nenhum vínculo acadêmico ativo encontrado.'], 404);
+        }
+
+        // Check if the publication belongs to this student's academic bond
+        if ($publication->academic_bond_id !== $academicBond->id) {
+            return response()->json(['error' => 'Publicação não encontrada ou não pertence a este discente.'], 404);
+        }
+
+        $publication->delete();
+
+        return response()->json([
+            'message' => 'Publicação removida com sucesso.',
+        ]);
+    }
+
+    /**
+     * Get available journals for selection.
+     */
+    public function getAvailableJournals(): JsonResponse
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Não autenticado.'], 401);
+        }
+
+        if (! $user->isDiscente()) {
+            return response()->json(['error' => 'Acesso negado. Apenas discentes podem acessar os periódicos disponíveis.'], 403);
+        }
+
+        $journals = Journal::whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'qualis'])
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'name' => $journal->name,
+                    'qualis' => $journal->qualis,
+                ];
+            });
+
+        return response()->json($journals);
     }
 }
