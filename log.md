@@ -1,0 +1,70 @@
+login:31 🔍 Browser logger active (MCP server detected). Posting to: http://127.0.0.1:8001/_boost/browser-logs
+main-BtfGV5_u.js:69  PATCH http://127.0.0.1:8001/api/student/academic-requirements 422 (Unprocessable Content)
+(anonymous) @ main-BtfGV5_u.js:69
+xhr @ main-BtfGV5_u.js:69
+z_ @ main-BtfGV5_u.js:71
+Promise.then
+_request @ main-BtfGV5_u.js:72
+request @ main-BtfGV5_u.js:71
+(anonymous) @ main-BtfGV5_u.js:72
+(anonymous) @ main-BtfGV5_u.js:67
+VW @ main-BtfGV5_u.js:72
+await in VW
+mutationFn @ main-BtfGV5_u.js:441
+fn @ main-BtfGV5_u.js:40
+b @ main-BtfGV5_u.js:40
+start @ main-BtfGV5_u.js:40
+execute @ main-BtfGV5_u.js:40
+(anonymous) @ unknown
+await in (anonymous)
+(anonymous) @ unknown
+await in (anonymous)
+mutate @ main-BtfGV5_u.js:40
+(anonymous) @ main-BtfGV5_u.js:40
+j @ main-BtfGV5_u.js:441
+onChange @ main-BtfGV5_u.js:441
+I6 @ main-BtfGV5_u.js:37
+L6 @ main-BtfGV5_u.js:37
+F6 @ main-BtfGV5_u.js:37
+gE @ main-BtfGV5_u.js:37
+yE @ main-BtfGV5_u.js:37
+(anonymous) @ main-BtfGV5_u.js:37
+oy @ main-BtfGV5_u.js:40
+NC @ main-BtfGV5_u.js:37
+og @ main-BtfGV5_u.js:37
+zv @ main-BtfGV5_u.js:37
+t8 @ main-BtfGV5_u.js:37
+(anonymous) @ unknown
+setTimeout
+setSelectionAndCommit @ unknown
+selectRangeContainingDay @ unknown
+onClick @ unknown
+login:90 Failed to update academic requirements: rt {message: 'Request failed with status code 422', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+console.<computed> @ login:90
+onError @ main-BtfGV5_u.js:441
+execute @ main-BtfGV5_u.js:40
+await in execute
+(anonymous) @ unknown
+await in (anonymous)
+(anonymous) @ unknown
+await in (anonymous)
+mutate @ main-BtfGV5_u.js:40
+(anonymous) @ main-BtfGV5_u.js:40
+j @ main-BtfGV5_u.js:441
+onChange @ main-BtfGV5_u.js:441
+I6 @ main-BtfGV5_u.js:37
+L6 @ main-BtfGV5_u.js:37
+F6 @ main-BtfGV5_u.js:37
+gE @ main-BtfGV5_u.js:37
+yE @ main-BtfGV5_u.js:37
+(anonymous) @ main-BtfGV5_u.js:37
+oy @ main-BtfGV5_u.js:40
+NC @ main-BtfGV5_u.js:37
+og @ main-BtfGV5_u.js:37
+zv @ main-BtfGV5_u.js:37
+t8 @ main-BtfGV5_u.js:37
+(anonymous) @ unknown
+setTimeout
+setSelectionAndCommit @ unknown
+selectRangeContainingDay @ unknown
+onClick @ unknown
