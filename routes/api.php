@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\Api\AcademicBondController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DiscenteController;
@@ -29,6 +30,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Stats routes (accessible by admin and docente)
     Route::get('/stats/counts', [StatsController::class, 'getCounts']);
+
+    // Dashboard routes (accessible by admin and docente)
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
     // Research Lines routes (accessible by admin and docente)
     Route::apiResource('research-lines', ResearchLineController::class);

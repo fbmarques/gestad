@@ -969,4 +969,69 @@ export const rejectPublication = async (publicationId: number): Promise<RejectPu
   return response.data;
 };
 
+// Dashboard types
+export interface DashboardStats {
+  activeStudents: number;
+  coursesOffered: number;
+  scheduledDefenses: number;
+  defensesNext30Days: number;
+  publicationsLast12Months: number;
+}
+
+export interface AcademicDistribution {
+  name: string;
+  value: number;
+}
+
+export interface PublicationByQualis {
+  qualis: string;
+  count: number;
+}
+
+export interface ScholarshipDistribution {
+  name: string;
+  value: number;
+}
+
+export interface EventMonthly {
+  month: string;
+  events: number;
+}
+
+export interface TopProfessor {
+  name: string;
+  students: number;
+}
+
+export interface TopJournal {
+  alias: string;
+  name: string;
+  publications: number;
+}
+
+export interface AlertData {
+  type: string;
+  title: string;
+  description: string;
+}
+
+export interface DashboardStatsResponse {
+  stats: DashboardStats;
+  academicDistribution: AcademicDistribution[];
+  publicationsByQualis: PublicationByQualis[];
+  scholarshipData: ScholarshipDistribution[];
+  scholarshipPercentage: number;
+  eventsMonthly: EventMonthly[];
+  totalEventsLast12Months: number;
+  topProfessors: TopProfessor[];
+  topJournals: TopJournal[];
+  alertsData: AlertData[];
+}
+
+// Dashboard API
+export const getDashboardStats = async (): Promise<DashboardStatsResponse> => {
+  const response = await api.get<DashboardStatsResponse>('/api/dashboard/stats');
+  return response.data;
+};
+
 export default api;

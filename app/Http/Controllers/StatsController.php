@@ -6,6 +6,7 @@ use App\Models\Agency;
 use App\Models\Course;
 use App\Models\Event;
 use App\Models\Journal;
+use App\Models\Publication;
 use App\Models\ResearchLine;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +32,7 @@ class StatsController extends Controller
             'agencias' => Agency::count(),
             'revistas' => Journal::count(),
             'eventos' => Event::count(),
-            'producoes' => 0, // Placeholder até implementar model de produções
+            'producoes' => Publication::where('status', 'P')->count(), // Contagem de publicações pendentes
         ];
 
         return response()->json($counts);

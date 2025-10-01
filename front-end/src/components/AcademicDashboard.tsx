@@ -3,18 +3,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line } from "recharts";
-import { 
-  BookOpen, 
-  Users, 
-  FileText, 
-  Calendar, 
-  TrendingUp, 
+import {
+  BookOpen,
+  Users,
+  FileText,
+  Calendar,
+  TrendingUp,
   Award,
   Bell,
   Settings,
   PieChart as PieChartIcon,
   BarChart3
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardStats } from "@/lib/api";
 
 interface StatCard {
   title: string;
@@ -25,120 +27,6 @@ interface StatCard {
   trendUp?: boolean;
 }
 
-const stats: StatCard[] = [
-  {
-    title: "Discentes Ativos",
-    value: "247",
-    description: "",
-    icon: Users,
-    trend: "",
-    trendUp: true
-  },
-  {
-    title: "Disciplinas Ofertadas",
-    value: "18",
-    description: "",
-    icon: BookOpen,
-    trend: "",
-    trendUp: true
-  },
-  {
-    title: "Defesas Programadas",
-    value: "8",
-    description: "Próximos 30 dias",
-    icon: Calendar,
-    trend: "2",
-    trendUp: false
-  },
-  {
-    title: "Publicações",
-    value: "156",
-    description: "Últimos 12 meses",
-    icon: FileText,
-    trend: "+24",
-    trendUp: true
-  }
-];
-
-// Dados para gráficos
-const academicDistribution = [
-  { name: "Mestrado", value: 148, fill: "hsl(var(--primary))" },
-  { name: "Doutorado", value: 99, fill: "hsl(var(--warning))" }
-];
-
-const publicationsQualis = [
-  { qualis: "A1", count: 28, fill: "hsl(var(--success))" },
-  { qualis: "A2", count: 34, fill: "hsl(var(--primary))" },
-  { qualis: "A3", count: 22, fill: "hsl(var(--warning))" },
-  { qualis: "A4", count: 18, fill: "hsl(var(--muted))" },
-  { qualis: "B1", count: 31, fill: "hsl(var(--destructive))" },
-  { qualis: "B2", count: 23, fill: "hsl(var(--secondary))" }
-];
-
-const alertsData = [
-  {
-    type: "urgent",
-    title: "Prazos de Qualificação Vencendo",
-    description: "8 discentes com prazo em 30 dias",
-    icon: Calendar,
-    color: "text-destructive bg-destructive/10 border-destructive/20"
-  },
-  {
-    type: "warning", 
-    title: "Produções Pendentes de Aprovação",
-    description: "15 publicações aguardando análise",
-    icon: FileText,
-    color: "text-warning bg-warning/10 border-warning/20"
-  },
-  {
-    type: "info",
-    title: "Bolsas a Vencer",
-    description: "12 bolsas vencem nos próximos 60 dias",
-    icon: Award,
-    color: "text-primary bg-primary/10 border-primary/20"
-  },
-  {
-    type: "success",
-    title: "Novas Matrículas",
-    description: "5 novos discentes matriculados esta semana",
-    icon: Users,
-    color: "text-success bg-success/10 border-success/20"
-  }
-];
-
-// Dados para mini-dashboards
-const scholarshipData = [
-  { name: "Com Bolsa", value: 168, fill: "hsl(var(--success))" },
-  { name: "Sem Bolsa", value: 79, fill: "hsl(var(--muted))" }
-];
-
-const eventsMonthly = [
-  { month: "Jan", events: 12 },
-  { month: "Fev", events: 8 },
-  { month: "Mar", events: 15 },
-  { month: "Abr", events: 22 },
-  { month: "Mai", events: 18 },
-  { month: "Jun", events: 25 },
-  { month: "Jul", events: 30 },
-  { month: "Ago", events: 28 },
-  { month: "Set", events: 35 },
-  { month: "Out", events: 32 },
-  { month: "Nov", events: 40 },
-  { month: "Dez", events: 38 }
-];
-
-const topProfessors = [
-  { name: "Dr. Silva", students: 18, fill: "hsl(var(--primary))" },
-  { name: "Dra. Santos", students: 15, fill: "hsl(var(--secondary))" },
-  { name: "Dr. Oliveira", students: 12, fill: "hsl(var(--success))" }
-];
-
-const topJournals = [
-  { alias: "JCIS", publications: 28, name: "Journal of Computer and Information Science" },
-  { alias: "IEEE Trans.", publications: 24, name: "IEEE Transactions on Software Engineering" },
-  { alias: "ACM Comp.", publications: 19, name: "ACM Computing Surveys" }
-];
-
 const chartConfig = {
   qualis: {
     label: "Publicações por Qualis",
@@ -147,6 +35,121 @@ const chartConfig = {
 };
 
 export function AcademicDashboard() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-muted-foreground">Carregando estatísticas...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-destructive">Erro ao carregar estatísticas do dashboard</div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  // Mapear dados da API para formato do componente
+  const stats: StatCard[] = [
+    {
+      title: "Discentes Ativos",
+      value: String(data.stats.activeStudents),
+      description: "",
+      icon: Users,
+      trend: "",
+      trendUp: true
+    },
+    {
+      title: "Disciplinas Ofertadas",
+      value: String(data.stats.coursesOffered),
+      description: "",
+      icon: BookOpen,
+      trend: "",
+      trendUp: true
+    },
+    {
+      title: "Defesas Programadas",
+      value: String(data.stats.scheduledDefenses),
+      description: "Próximos 30 dias",
+      icon: Calendar,
+      trend: String(data.stats.defensesNext30Days),
+      trendUp: false
+    },
+    {
+      title: "Publicações",
+      value: String(data.stats.publicationsLast12Months),
+      description: "Últimos 12 meses",
+      icon: FileText,
+      trend: "",
+      trendUp: true
+    }
+  ];
+
+  // Adicionar cores aos dados do backend
+  const academicDistribution = data.academicDistribution.map((item, index) => ({
+    ...item,
+    fill: index === 0 ? "hsl(var(--primary))" : "hsl(var(--warning))"
+  }));
+
+  const publicationsQualis = data.publicationsByQualis.map((item) => {
+    const colors: Record<string, string> = {
+      'A1': "hsl(var(--success))",
+      'A2': "hsl(var(--primary))",
+      'A3': "hsl(var(--warning))",
+      'A4': "hsl(var(--muted))",
+      'B1': "hsl(var(--destructive))",
+      'B2': "hsl(var(--secondary))",
+    };
+    return {
+      ...item,
+      fill: colors[item.qualis] || "hsl(var(--muted))"
+    };
+  });
+
+  const scholarshipData = data.scholarshipData.map((item, index) => ({
+    ...item,
+    fill: index === 0 ? "hsl(var(--success))" : "hsl(var(--muted))"
+  }));
+
+  const topProfessors = data.topProfessors.map((item, index) => {
+    const fills = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--success))"];
+    return {
+      ...item,
+      fill: fills[index] || "hsl(var(--muted))"
+    };
+  });
+
+  const alertsDataWithStyle = data.alertsData.map((alert) => {
+    const typeColors: Record<string, string> = {
+      'urgent': 'text-destructive bg-destructive/10 border-destructive/20',
+      'warning': 'text-warning bg-warning/10 border-warning/20',
+      'info': 'text-primary bg-primary/10 border-primary/20',
+      'success': 'text-success bg-success/10 border-success/20',
+    };
+    const typeIcons: Record<string, any> = {
+      'urgent': Calendar,
+      'warning': FileText,
+      'info': Award,
+      'success': Users,
+    };
+    return {
+      ...alert,
+      color: typeColors[alert.type] || typeColors['info'],
+      icon: typeIcons[alert.type] || Bell,
+    };
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -278,7 +281,7 @@ export function AcademicDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {alertsData.map((alert, index) => (
+            {alertsDataWithStyle.map((alert, index) => (
               <div
                 key={index}
                 className={`rounded-lg border p-3 ${alert.color}`}
@@ -313,7 +316,7 @@ export function AcademicDashboard() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">68%</p>
+                <p className="text-2xl font-bold text-foreground">{data.scholarshipPercentage}%</p>
                 <p className="text-xs text-muted-foreground">com bolsa</p>
               </div>
               <div className="w-16 h-16">
@@ -349,12 +352,12 @@ export function AcademicDashboard() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-foreground">312</p>
+                <p className="text-2xl font-bold text-foreground">{data.totalEventsLast12Months}</p>
                 <p className="text-xs text-muted-foreground">últimos 12 meses</p>
               </div>
               <div className="w-20 h-12">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={eventsMonthly}>
+                  <LineChart data={data.eventsMonthly}>
                     <Line 
                       type="monotone" 
                       dataKey="events" 
@@ -402,7 +405,7 @@ export function AcademicDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {topJournals.map((journal, index) => (
+              {data.topJournals.map((journal, index) => (
                 <div key={journal.alias} className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-xs font-bold text-primary">{index + 1}</span>
