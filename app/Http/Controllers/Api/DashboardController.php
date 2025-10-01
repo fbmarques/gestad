@@ -40,6 +40,14 @@ class DashboardController extends Controller
             ->where('created_at', '>=', now()->subYear())
             ->count();
 
+        // Publicações - 12 meses anteriores (para calcular tendência)
+        $publicationsPrevious12Months = Publication::whereIn('status', ['P', 'D', 'I'])
+            ->where('created_at', '>=', now()->subYears(2))
+            ->where('created_at', '<', now()->subYear())
+            ->count();
+
+        $publicationsTrend = $publicationsLast12Months - $publicationsPrevious12Months;
+
         // Distribuição Acadêmica por nível (Mestrado/Doutorado)
         $academicDistribution = AcademicBond::where('status', 'active')
             ->select('level', DB::raw('count(*) as value'))
@@ -89,21 +97,18 @@ class DashboardController extends Controller
             ['name' => 'Sem Bolsa', 'value' => $studentsWithoutScholarship],
         ];
 
-        // Eventos por Mês (últimos 12 meses)
+        // Eventos por Ano (últimos 4 anos - 2022 a 2025)
         $eventsMonthly = EventParticipation::select(
-            DB::raw('strftime("%Y-%m", created_at) as month'),
+            'year',
             DB::raw('count(*) as events')
         )
-            ->where('created_at', '>=', now()->subYear())
-            ->groupBy('month')
-            ->orderBy('month')
+            ->whereIn('year', [2022, 2023, 2024, 2025])
+            ->groupBy('year')
+            ->orderBy('year')
             ->get()
             ->map(function ($item) {
-                $monthNumber = (int) substr($item->month, 5, 2);
-                $monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
                 return [
-                    'month' => $monthNames[$monthNumber - 1] ?? $monthNumber,
+                    'month' => (string) $item->year,
                     'events' => $item->events,
                 ];
             });
@@ -202,6 +207,39 @@ class DashboardController extends Controller
             ];
         }
 
+        // Definições de Pesquisa - Percentual de Preenchimento por Campo
+        $activeBonds = AcademicBond::where('status', 'active')->get();
+        $bondsCount = $activeBonds->count();
+
+        $problemCount = 0;
+        $questionCount = 0;
+        $objectivesCount = 0;
+        $methodologyCount = 0;
+
+        if ($bondsCount > 0) {
+            foreach ($activeBonds as $bond) {
+                if ($bond->problem_defined) {
+                    $problemCount++;
+                }
+                if ($bond->question_defined) {
+                    $questionCount++;
+                }
+                if ($bond->objectives_defined) {
+                    $objectivesCount++;
+                }
+                if ($bond->methodology_defined) {
+                    $methodologyCount++;
+                }
+            }
+        }
+
+        $researchDefinitionsPercentages = [
+            'problem' => $bondsCount > 0 ? round(($problemCount / $bondsCount) * 100) : 0,
+            'question' => $bondsCount > 0 ? round(($questionCount / $bondsCount) * 100) : 0,
+            'objectives' => $bondsCount > 0 ? round(($objectivesCount / $bondsCount) * 100) : 0,
+            'methodology' => $bondsCount > 0 ? round(($methodologyCount / $bondsCount) * 100) : 0,
+        ];
+
         return response()->json([
             'stats' => [
                 'activeStudents' => $activeStudents,
@@ -209,7 +247,9 @@ class DashboardController extends Controller
                 'scheduledDefenses' => $scheduledDefenses,
                 'defensesNext30Days' => $defensesNext30Days,
                 'publicationsLast12Months' => $publicationsLast12Months,
+                'publicationsTrend' => $publicationsTrend,
             ],
+            'researchDefinitionsPercentages' => $researchDefinitionsPercentages,
             'academicDistribution' => $academicDistribution,
             'publicationsByQualis' => $publicationsByQualis,
             'scholarshipData' => $scholarshipData,

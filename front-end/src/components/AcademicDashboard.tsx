@@ -13,7 +13,11 @@ import {
   Bell,
   Settings,
   PieChart as PieChartIcon,
-  BarChart3
+  BarChart3,
+  ClipboardList,
+  HelpCircle,
+  Target,
+  Lightbulb
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStats } from "@/lib/api";
@@ -89,10 +93,10 @@ export function AcademicDashboard() {
     {
       title: "Publicações",
       value: String(data.stats.publicationsLast12Months),
-      description: "Últimos 12 meses",
+      description: "Nos últimos 12 meses",
       icon: FileText,
-      trend: "",
-      trendUp: true
+      trend: String(data.stats.publicationsTrend),
+      trendUp: data.stats.publicationsTrend >= 0
     }
   ];
 
@@ -269,36 +273,77 @@ export function AcademicDashboard() {
           </CardContent>
         </Card>
 
-        {/* Alerts and Notifications */}
+        {/* Research Definitions */}
         <Card className="card-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
-              Alertas e Pendências
+              <ClipboardList className="w-5 h-5 text-primary" />
+              Definições de Pesquisa
             </CardTitle>
             <CardDescription>
-              Itens que requerem atenção
+              Percentual de preenchimento dos campos
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {alertsDataWithStyle.map((alert, index) => (
-              <div
-                key={index}
-                className={`rounded-lg border p-3 ${alert.color}`}
-              >
-                <div className="flex items-start gap-3">
-                  <alert.icon className="w-4 h-4 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight">
-                      {alert.title}
-                    </p>
-                    <p className="text-xs opacity-80 mt-1">
-                      {alert.description}
-                    </p>
+            {data.researchDefinitionsPercentages && (
+              <>
+                <div className="rounded-lg border p-3 text-destructive bg-destructive/10 border-destructive/20">
+                  <div className="flex items-start gap-3">
+                    <HelpCircle className="w-4 h-4 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">
+                        Problema de Pesquisa
+                      </p>
+                      <p className="text-xs opacity-80 mt-1">
+                        {data.researchDefinitionsPercentages.problem}% dos discentes preencheram
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+
+                <div className="rounded-lg border p-3 text-warning bg-warning/10 border-warning/20">
+                  <div className="flex items-start gap-3">
+                    <HelpCircle className="w-4 h-4 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">
+                        Pergunta de Pesquisa
+                      </p>
+                      <p className="text-xs opacity-80 mt-1">
+                        {data.researchDefinitionsPercentages.question}% dos discentes preencheram
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-3 text-primary bg-primary/10 border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <Target className="w-4 h-4 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">
+                        Objetivos
+                      </p>
+                      <p className="text-xs opacity-80 mt-1">
+                        {data.researchDefinitionsPercentages.objectives}% dos discentes preencheram
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-3 text-success bg-success/10 border-success/20">
+                  <div className="flex items-start gap-3">
+                    <Lightbulb className="w-4 h-4 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight">
+                        Metodologia
+                      </p>
+                      <p className="text-xs opacity-80 mt-1">
+                        {data.researchDefinitionsPercentages.methodology}% dos discentes preencheram
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -341,27 +386,27 @@ export function AcademicDashboard() {
           </CardContent>
         </Card>
 
-        {/* Monthly Events */}
+        {/* Events by Year */}
         <Card className="card-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              Eventos por Mês
+              EParticipação de discentes em Eventos
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-2xl font-bold text-foreground">{data.totalEventsLast12Months}</p>
-                <p className="text-xs text-muted-foreground">últimos 12 meses</p>
+                <p className="text-xs text-muted-foreground">últimos 4 anos</p>
               </div>
               <div className="w-20 h-12">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={data.eventsMonthly}>
-                    <Line 
-                      type="monotone" 
-                      dataKey="events" 
-                      stroke="hsl(var(--primary))" 
+                    <Line
+                      type="monotone"
+                      dataKey="events"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={false}
                     />

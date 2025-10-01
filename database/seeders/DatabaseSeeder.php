@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             JournalSeeder::class,
             EventSeeder::class,
             AcademicBondSeeder::class,
+            PublicationSeeder::class,
+            EventParticipationSeeder::class,
         ]);
     }
 }

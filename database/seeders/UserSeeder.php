@@ -284,6 +284,81 @@ class UserSeeder extends Seeder
                 'role_slug' => 'discente',
                 'observation' => 'Mestrando em Ciência da Informação - 1º ano'
             ],
+            [
+                'name' => 'Camila Rodrigues Ferreira',
+                'email' => 'camila.ferreira@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'lattes_url' => 'http://lattes.cnpq.br/1313131313131313',
+                'observation' => 'Mestranda em Ciência da Informação - 2º ano'
+            ],
+            [
+                'name' => 'Lucas Almeida Pereira',
+                'email' => 'lucas.pereira@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'observation' => 'Doutorando em Ciência da Informação - 3º ano'
+            ],
+            [
+                'name' => 'Fernanda Costa Barbosa',
+                'email' => 'fernanda.barbosa@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'lattes_url' => 'http://lattes.cnpq.br/1414141414141414',
+                'observation' => 'Mestranda em Ciência da Informação - 1º ano'
+            ],
+            [
+                'name' => 'Rodrigo Silva Santos',
+                'email' => 'rodrigo.santos@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'observation' => 'Mestrando em Ciência da Informação - 2º ano'
+            ],
+            [
+                'name' => 'Juliana Martins Lima',
+                'email' => 'juliana.lima@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'lattes_url' => 'http://lattes.cnpq.br/1515151515151515',
+                'observation' => 'Doutoranda em Ciência da Informação - 1º ano'
+            ],
+            [
+                'name' => 'Pedro Henrique Souza',
+                'email' => 'pedro.souza@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'observation' => 'Mestrando em Ciência da Informação - 1º ano'
+            ],
+            [
+                'name' => 'Beatriz Oliveira Costa',
+                'email' => 'beatriz.costa@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'lattes_url' => 'http://lattes.cnpq.br/1616161616161616',
+                'observation' => 'Mestranda em Ciência da Informação - 2º ano'
+            ],
+            [
+                'name' => 'Guilherme Ferreira Almeida',
+                'email' => 'guilherme.almeida@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'observation' => 'Doutorando em Ciência da Informação - 4º ano'
+            ],
+            [
+                'name' => 'Mariana Santos Rodrigues',
+                'email' => 'mariana.rodrigues@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'lattes_url' => 'http://lattes.cnpq.br/1717171717171717',
+                'observation' => 'Mestranda em Ciência da Informação - 1º ano'
+            ],
+            [
+                'name' => 'Vinícius Lima Silva',
+                'email' => 'vinicius.silva@gestad.com.br',
+                'password' => '12345678',
+                'role_slug' => 'discente',
+                'observation' => 'Mestrando em Ciência da Informação - 2º ano'
+            ],
         ];
 
         // Criar usuários administrativos

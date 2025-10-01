@@ -976,6 +976,14 @@ export interface DashboardStats {
   scheduledDefenses: number;
   defensesNext30Days: number;
   publicationsLast12Months: number;
+  publicationsTrend: number;
+}
+
+export interface ResearchDefinitionsPercentages {
+  problem: number;
+  question: number;
+  objectives: number;
+  methodology: number;
 }
 
 export interface AcademicDistribution {
@@ -1017,6 +1025,7 @@ export interface AlertData {
 
 export interface DashboardStatsResponse {
   stats: DashboardStats;
+  researchDefinitionsPercentages: ResearchDefinitionsPercentages;
   academicDistribution: AcademicDistribution[];
   publicationsByQualis: PublicationByQualis[];
   scholarshipData: ScholarshipDistribution[];
