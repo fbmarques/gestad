@@ -11,11 +11,11 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   GraduationCap,
-  Users, 
-  BookOpen, 
-  FileText, 
+  Users,
+  BookOpen,
+  FileText,
   Calendar,
   Settings,
   BarChart3,
@@ -23,49 +23,58 @@ import {
   LogOut,
   Bell
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getUserRoles } from "@/lib/api";
 
-const menuItems = [
+const allMenuItems = [
   {
     title: "Dashboard",
     url: "/",
     icon: BarChart3,
-    badge: null
+    badge: null,
+    roles: ['admin', 'docente', 'discente'] // Todos podem ver
   },
   {
     title: "Discentes",
     url: "/discentes",
     icon: Users,
-    badge: "247"
+    badge: "247",
+    roles: ['admin', 'docente'] // Admin e Docente
   },
   {
     title: "Docentes",
     url: "/docentes",
     icon: User,
-    badge: null
+    badge: null,
+    roles: ['admin'] // Apenas Admin
   },
   {
     title: "Disciplinas",
     url: "/disciplinas",
     icon: BookOpen,
-    badge: "18"
+    badge: "18",
+    roles: ['admin'] // Apenas Admin
   },
   {
     title: "Revistas",
     url: "/revistas",
     icon: FileText,
-    badge: null
+    badge: null,
+    roles: ['admin'] // Apenas Admin
   },
   {
     title: "Eventos",
     url: "/eventos",
     icon: Calendar,
-    badge: null
+    badge: null,
+    roles: ['admin'] // Apenas Admin
   },
   {
     title: "Agências",
     url: "/agencias",
     icon: Settings,
-    badge: null
+    badge: null,
+    roles: ['admin'] // Apenas Admin
   }
 ];
 
@@ -101,6 +110,20 @@ export function AcademicSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const isCollapsed = state === "collapsed";
+
+  // Buscar roles do usuário
+  const { data: userRoles, isLoading: isLoadingRoles } = useQuery({
+    queryKey: ['user-roles'],
+    queryFn: getUserRoles,
+  });
+
+  // Extrair slugs das roles
+  const userRoleSlugs = userRoles?.map(role => role.slug) || [];
+
+  // Filtrar menu items baseado nas roles do usuário
+  const menuItems = allMenuItems.filter(item =>
+    item.roles.some(role => userRoleSlugs.includes(role))
+  );
 
   const isActive = (path: string) => currentPath === path;
   

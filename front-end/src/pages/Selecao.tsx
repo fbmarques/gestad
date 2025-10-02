@@ -5,10 +5,12 @@ import { Moon, Sun, Users, BookOpen, GraduationCap, Settings } from "lucide-reac
 import { useState, useEffect } from "react";
 import { getUserRoles, getUserAcademicLevels, Role } from "@/lib/api";
 import { useTheme } from "@/hooks/useTheme";
+import { useActiveRole } from "@/hooks/useActiveRole";
 
 const Selecao = () => {
   const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
+  const { setActiveRole } = useActiveRole();
   const [userRoles, setUserRoles] = useState<Role[]>([]);
   const [academicLevels, setAcademicLevels] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,13 @@ const Selecao = () => {
 
     loadUserData();
   }, [navigate]);
+
+  const handleSelectProfile = (role: string, route: string) => {
+    // Save active role to localStorage
+    setActiveRole(role as 'admin' | 'docente' | 'discente');
+    // Navigate to the appropriate route
+    navigate(route);
+  };
 
   const allProfileOptions = [
     {
@@ -167,7 +176,7 @@ const Selecao = () => {
                   <Card
                     key={option.title}
                     className="cursor-pointer hover:shadow-lg transition-shadow border-card-border"
-                    onClick={() => navigate(option.route)}
+                    onClick={() => handleSelectProfile(option.requiredRole, option.route)}
                   >
                     <CardHeader className="text-center pb-4">
                       <div className={`w-16 h-16 rounded-full ${option.color} flex items-center justify-center mx-auto mb-4`}>
@@ -185,7 +194,7 @@ const Selecao = () => {
                         className="w-full"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(option.route);
+                          handleSelectProfile(option.requiredRole, option.route);
                         }}
                       >
                         Acessar

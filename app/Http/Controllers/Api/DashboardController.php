@@ -261,4 +261,269 @@ class DashboardController extends Controller
             'alertsData' => $alertsData,
         ]);
     }
+
+    public function docenteStats(): JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->roles()->where('role_id', 2)->exists()) {
+            return response()->json(['error' => 'Acesso negado. Apenas docentes podem acessar este dashboard.'], 403);
+        }
+
+        // Filtra apenas os discentes orientados pelo docente logado
+        $advisorId = $user->id;
+
+        // Discentes Ativos orientados pelo docente
+        $activeStudents = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->count();
+
+        // Disciplinas Ofertadas (total courses)
+        $coursesOffered = Course::whereNull('deleted_at')->count();
+
+        // Defesas Programadas dos orientandos
+        $scheduledDefenses = AcademicBond::where('defense_status', 'Scheduled')
+            ->where('advisor_id', $advisorId)
+            ->count();
+
+        // Defesas Programadas nos próximos 30 dias dos orientandos
+        $defensesNext30Days = AcademicBond::where('defense_status', 'Scheduled')
+            ->where('advisor_id', $advisorId)
+            ->where('defense_date', '>=', now())
+            ->where('defense_date', '<=', now()->addDays(30))
+            ->count();
+
+        // Publicações dos orientandos (status P, D ou I) - últimos 12 meses
+        $studentIds = AcademicBond::where('advisor_id', $advisorId)->pluck('student_id');
+        $publicationsLast12Months = Publication::whereIn('student_id', $studentIds)
+            ->whereIn('status', ['P', 'D', 'I'])
+            ->where('created_at', '>=', now()->subYear())
+            ->count();
+
+        // Publicações - 12 meses anteriores (para calcular tendência)
+        $publicationsPrevious12Months = Publication::whereIn('student_id', $studentIds)
+            ->whereIn('status', ['P', 'D', 'I'])
+            ->where('created_at', '>=', now()->subYears(2))
+            ->where('created_at', '<', now()->subYear())
+            ->count();
+
+        $publicationsTrend = $publicationsLast12Months - $publicationsPrevious12Months;
+
+        // Distribuição Acadêmica por nível (Mestrado/Doutorado) dos orientandos
+        $academicDistribution = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->select('level', DB::raw('count(*) as value'))
+            ->groupBy('level')
+            ->get()
+            ->map(function ($item) {
+                $levelName = match ($item->level) {
+                    'master' => 'Mestrado',
+                    'doctorate' => 'Doutorado',
+                    default => $item->level,
+                };
+
+                return [
+                    'name' => $levelName,
+                    'value' => $item->value,
+                ];
+            });
+
+        // Publicações por Qualis dos orientandos
+        $publicationsByQualis = Publication::whereIn('student_id', $studentIds)
+            ->whereIn('status', ['P', 'D', 'I'])
+            ->join('journals', 'publications.journal_id', '=', 'journals.id')
+            ->whereNotNull('journals.qualis')
+            ->select('journals.qualis', DB::raw('count(*) as count'))
+            ->groupBy('journals.qualis')
+            ->orderBy('journals.qualis')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'qualis' => $item->qualis,
+                    'count' => $item->count,
+                ];
+            });
+
+        // Situação de Bolsas dos orientandos
+        $totalActiveStudents = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->count();
+        $studentsWithScholarship = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->whereNotNull('agency_id')
+            ->count();
+        $studentsWithoutScholarship = $totalActiveStudents - $studentsWithScholarship;
+
+        $scholarshipPercentage = $totalActiveStudents > 0
+            ? round(($studentsWithScholarship / $totalActiveStudents) * 100)
+            : 0;
+
+        $scholarshipData = [
+            ['name' => 'Com Bolsa', 'value' => $studentsWithScholarship],
+            ['name' => 'Sem Bolsa', 'value' => $studentsWithoutScholarship],
+        ];
+
+        // Eventos dos orientandos (últimos 4 anos - 2022 a 2025)
+        $eventsMonthly = EventParticipation::whereIn('student_id', $studentIds)
+            ->select('year', DB::raw('count(*) as events'))
+            ->whereIn('year', [2022, 2023, 2024, 2025])
+            ->groupBy('year')
+            ->orderBy('year')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'month' => (string) $item->year,
+                    'events' => $item->events,
+                ];
+            });
+
+        $totalEventsLast12Months = $eventsMonthly->sum('events');
+
+        // Top Revistas das publicações dos orientandos
+        $topJournals = Publication::whereIn('student_id', $studentIds)
+            ->whereIn('status', ['P', 'D', 'I'])
+            ->join('journals', 'publications.journal_id', '=', 'journals.id')
+            ->select('journals.name', DB::raw('count(publications.id) as publications'))
+            ->groupBy('journals.id', 'journals.name')
+            ->orderByDesc('publications')
+            ->limit(3)
+            ->get()
+            ->map(function ($item) {
+                // Criar alias a partir do nome
+                $words = explode(' ', $item->name);
+                $alias = count($words) > 1
+                    ? strtoupper(substr($words[0], 0, 1).substr($words[1] ?? '', 0, 1))
+                    : strtoupper(substr($item->name, 0, 4));
+
+                return [
+                    'alias' => $alias,
+                    'name' => $item->name,
+                    'publications' => $item->publications,
+                ];
+            });
+
+        // Lista dos orientandos ativos do docente (para o card "Top Docentes" agora mostra orientandos)
+        $topProfessors = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->join('users', 'academic_bonds.student_id', '=', 'users.id')
+            ->select('users.name', 'academic_bonds.level')
+            ->orderBy('users.name')
+            ->limit(3)
+            ->get()
+            ->map(function ($item) {
+                $levelName = match ($item->level) {
+                    'master' => 'Mestrado',
+                    'doctorate' => 'Doutorado',
+                    default => $item->level,
+                };
+
+                return [
+                    'name' => $item->name,
+                    'students' => $levelName,
+                ];
+            });
+
+        // Alertas e Pendências dos orientandos
+        $alertsData = [];
+
+        // Prazos de Qualificação Vencendo (próximos 30 dias) dos orientandos
+        $qualificationsExpiring = AcademicBond::where('qualification_status', 'Scheduled')
+            ->where('advisor_id', $advisorId)
+            ->where('qualification_date', '>=', now())
+            ->where('qualification_date', '<=', now()->addDays(30))
+            ->count();
+
+        if ($qualificationsExpiring > 0) {
+            $alertsData[] = [
+                'type' => 'urgent',
+                'title' => 'Prazos de Qualificação Vencendo',
+                'description' => "$qualificationsExpiring orientandos com prazo em 30 dias",
+            ];
+        }
+
+        // Produções Pendentes de Aprovação dos orientandos
+        $pendingPublications = Publication::whereIn('student_id', $studentIds)
+            ->where('status', 'Pending')
+            ->count();
+
+        if ($pendingPublications > 0) {
+            $alertsData[] = [
+                'type' => 'warning',
+                'title' => 'Produções Pendentes de Aprovação',
+                'description' => "$pendingPublications publicações aguardando análise",
+            ];
+        }
+
+        // Bolsas a Vencer (próximos 60 dias) dos orientandos
+        $scholarshipsExpiring = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->whereNotNull('agency_id')
+            ->whereNotNull('end_date')
+            ->where('end_date', '>=', now())
+            ->where('end_date', '<=', now()->addDays(60))
+            ->count();
+
+        if ($scholarshipsExpiring > 0) {
+            $alertsData[] = [
+                'type' => 'info',
+                'title' => 'Bolsas a Vencer',
+                'description' => "$scholarshipsExpiring bolsas vencem nos próximos 60 dias",
+            ];
+        }
+
+        // Definições de Pesquisa - Percentual de Preenchimento por Campo dos orientandos
+        $activeBonds = AcademicBond::where('status', 'active')
+            ->where('advisor_id', $advisorId)
+            ->get();
+        $bondsCount = $activeBonds->count();
+
+        $problemCount = 0;
+        $questionCount = 0;
+        $objectivesCount = 0;
+        $methodologyCount = 0;
+
+        if ($bondsCount > 0) {
+            foreach ($activeBonds as $bond) {
+                if ($bond->problem_defined) {
+                    $problemCount++;
+                }
+                if ($bond->question_defined) {
+                    $questionCount++;
+                }
+                if ($bond->objectives_defined) {
+                    $objectivesCount++;
+                }
+                if ($bond->methodology_defined) {
+                    $methodologyCount++;
+                }
+            }
+        }
+
+        $researchDefinitionsPercentages = [
+            'problem' => $bondsCount > 0 ? round(($problemCount / $bondsCount) * 100) : 0,
+            'question' => $bondsCount > 0 ? round(($questionCount / $bondsCount) * 100) : 0,
+            'objectives' => $bondsCount > 0 ? round(($objectivesCount / $bondsCount) * 100) : 0,
+            'methodology' => $bondsCount > 0 ? round(($methodologyCount / $bondsCount) * 100) : 0,
+        ];
+
+        return response()->json([
+            'stats' => [
+                'activeStudents' => $activeStudents,
+                'coursesOffered' => $coursesOffered,
+                'scheduledDefenses' => $scheduledDefenses,
+                'defensesNext30Days' => $defensesNext30Days,
+                'publicationsLast12Months' => $publicationsLast12Months,
+                'publicationsTrend' => $publicationsTrend,
+            ],
+            'researchDefinitionsPercentages' => $researchDefinitionsPercentages,
+            'academicDistribution' => $academicDistribution,
+            'publicationsByQualis' => $publicationsByQualis,
+            'scholarshipData' => $scholarshipData,
+            'scholarshipPercentage' => $scholarshipPercentage,
+            'eventsMonthly' => $eventsMonthly,
+            'totalEventsLast12Months' => $totalEventsLast12Months,
+            'topProfessors' => $topProfessors,
+            'topJournals' => $topJournals,
+            'alertsData' => $alertsData,
+        ]);
+    }
 }

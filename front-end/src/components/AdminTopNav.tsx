@@ -14,6 +14,7 @@ import {
   LogOut
 } from "lucide-react";
 import { getStatsCounts } from "@/lib/api";
+import { useActiveRole } from "@/hooks/useActiveRole";
 
 interface AdminTopNavProps {
   isDarkMode: boolean;
@@ -22,6 +23,7 @@ interface AdminTopNavProps {
 
 const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
   const navigate = useNavigate();
+  const { activeRole, getDashboardRoute, clearActiveRole } = useActiveRole();
 
   // Buscar contadores da API
   const { data: counts, isLoading } = useQuery({
@@ -31,47 +33,62 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
     refetchInterval: 1000 * 60 * 5, // Refetch a cada 5 minutos
   });
 
+  // Define all menu items with role requirements
+  const allMenuItems = [
+    {
+      label: "Discentes",
+      path: "/discentes",
+      badge: isLoading ? "..." : counts?.discentes?.toString() || "0",
+      roles: ['admin', 'docente'] // Admin e Docente podem ver
+    },
+    {
+      label: "Docentes",
+      path: "/docentes",
+      badge: isLoading ? "..." : counts?.docentes?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    },
+    {
+      label: "Linhas de Pesquisa",
+      path: "/linhaspesquisa",
+      badge: isLoading ? "..." : counts?.linhaspesquisa?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    },
+    {
+      label: "Disciplinas",
+      path: "/disciplinas",
+      badge: isLoading ? "..." : counts?.disciplinas?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    },
+    {
+      label: "Agências",
+      path: "/agencias",
+      badge: isLoading ? "..." : counts?.agencias?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    },
+    {
+      label: "Revistas",
+      path: "/revistas",
+      badge: isLoading ? "..." : counts?.revistas?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    },
+    {
+      label: "Eventos",
+      path: "/eventos",
+      badge: isLoading ? "..." : counts?.eventos?.toString() || "0",
+      roles: ['admin'] // Apenas Admin
+    }
+  ];
+
+  // Filter menu items based on active role
+  const filteredMenuItems = allMenuItems.filter(item =>
+    activeRole && item.roles.includes(activeRole)
+  );
+
   const dropdownMenuItems = [
     {
       title: "Cadastro",
       icon: Users,
-      items: [
-        {
-          label: "Discentes",
-          path: "/discentes",
-          badge: isLoading ? "..." : counts?.discentes?.toString() || "0"
-        },
-        {
-          label: "Docentes",
-          path: "/docentes",
-          badge: isLoading ? "..." : counts?.docentes?.toString() || "0"
-        },
-        {
-          label: "Linhas de Pesquisa",
-          path: "/linhaspesquisa",
-          badge: isLoading ? "..." : counts?.linhaspesquisa?.toString() || "0"
-        },
-        {
-          label: "Disciplinas",
-          path: "/disciplinas",
-          badge: isLoading ? "..." : counts?.disciplinas?.toString() || "0"
-        },
-        {
-          label: "Agências",
-          path: "/agencias",
-          badge: isLoading ? "..." : counts?.agencias?.toString() || "0"
-        },
-        {
-          label: "Revistas",
-          path: "/revistas",
-          badge: isLoading ? "..." : counts?.revistas?.toString() || "0"
-        },
-        {
-          label: "Eventos",
-          path: "/eventos",
-          badge: isLoading ? "..." : counts?.eventos?.toString() || "0"
-        }
-      ]
+      items: filteredMenuItems
     }
   ];
 
@@ -91,7 +108,7 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
           {/* Dashboard */}
           <Button
             variant="ghost"
-            onClick={() => navigate("/administrativo")}
+            onClick={() => navigate(getDashboardRoute())}
             className="flex items-center gap-2 text-sm font-medium hover:bg-accent"
             title="Botão Dashboard"
           >
@@ -164,7 +181,10 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/selecao")}
+            onClick={() => {
+              clearActiveRole();
+              navigate("/selecao");
+            }}
             className="gap-2"
             title="Botão Seleção"
           >

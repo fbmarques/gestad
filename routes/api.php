@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard routes (accessible by admin and docente)
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/dashboard/docente-stats', [DashboardController::class, 'docenteStats']);
 
     // Research Lines routes (accessible by admin and docente)
     Route::apiResource('research-lines', ResearchLineController::class);

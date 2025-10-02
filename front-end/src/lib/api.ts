@@ -1043,4 +1043,9 @@ export const getDashboardStats = async (): Promise<DashboardStatsResponse> => {
   return response.data;
 };
 
+export const getDashboardStatsDocente = async (): Promise<DashboardStatsResponse> => {
+  const response = await api.get<DashboardStatsResponse>('/api/dashboard/docente-stats');
+  return response.data;
+};
+
 export default api;
