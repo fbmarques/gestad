@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ interface ConfirmationModal {
 
 const Producoes = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const { activeRole } = useActiveRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -30,6 +32,9 @@ const Producoes = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check if user is docente (should not see action buttons)
+  const isDocente = activeRole === 'docente';
 
   useEffect(() => {
     document.title = "Aprovação de Produções | GESTAD";
@@ -190,13 +195,13 @@ const Producoes = () => {
                           <TableHead className="font-bold text-foreground">Periódico</TableHead>
                           <TableHead className="font-bold text-foreground">Qualis</TableHead>
                           <TableHead className="font-bold text-foreground">Data Publicação</TableHead>
-                          <TableHead className="w-24 font-bold text-foreground">Ação</TableHead>
+                          {!isDocente && <TableHead className="w-24 font-bold text-foreground">Ação</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={isDocente ? 6 : 7} className="text-center py-8 text-muted-foreground">
                               Carregando...
                             </TableCell>
                           </TableRow>
@@ -209,50 +214,52 @@ const Producoes = () => {
                               <TableCell>{producao.periodico}</TableCell>
                               <TableCell>{producao.qualis}</TableCell>
                               <TableCell>{producao.dataPublicacao}</TableCell>
-                              <TableCell>
-                                <TooltipProvider>
-                                  <div className="flex gap-1">
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="icon"
-                                          className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
-                                          onClick={() => handleApprove(producao)}
-                                          disabled={approveMutation.isPending || rejectMutation.isPending}
-                                        >
-                                          <ThumbsUp className="w-4 h-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Deferido</p>
-                                      </TooltipContent>
-                                    </Tooltip>
+                              {!isDocente && (
+                                <TableCell>
+                                  <TooltipProvider>
+                                    <div className="flex gap-1">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="bg-green-500 border-green-500 text-white hover:bg-green-600 hover:border-green-600"
+                                            onClick={() => handleApprove(producao)}
+                                            disabled={approveMutation.isPending || rejectMutation.isPending}
+                                          >
+                                            <ThumbsUp className="w-4 h-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Deferido</p>
+                                        </TooltipContent>
+                                      </Tooltip>
 
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="icon"
-                                          className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
-                                          onClick={() => handleReject(producao)}
-                                          disabled={approveMutation.isPending || rejectMutation.isPending}
-                                        >
-                                          <ThumbsDown className="w-4 h-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Indeferido</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </TooltipProvider>
-                              </TableCell>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600"
+                                            onClick={() => handleReject(producao)}
+                                            disabled={approveMutation.isPending || rejectMutation.isPending}
+                                          >
+                                            <ThumbsDown className="w-4 h-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Indeferido</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  </TooltipProvider>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={isDocente ? 6 : 7} className="text-center py-8 text-muted-foreground">
                               {searchTerm ? "Nenhuma produção encontrada" : "Nenhum registro para exibir"}
                             </TableCell>
                           </TableRow>

@@ -8,16 +8,28 @@ use Illuminate\Http\Request;
 
 class PublicationController extends Controller
 {
-    public function pending(): JsonResponse
+    public function pending(Request $request): JsonResponse
     {
         $user = auth()->user();
         if (! $user || ! $user->roles()->whereIn('role_id', [1, 2])->exists()) {
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
-        $publications = Publication::where('status', 'P')
-            ->with(['academicBond.student', 'academicBond.advisor', 'journal'])
-            ->orderBy('publication_date', 'desc')
+        // Get active role from request parameter (sent from frontend)
+        $activeRole = $request->query('active_role', '');
+
+        $query = Publication::where('status', 'P')
+            ->with(['academicBond.student', 'academicBond.advisor', 'journal']);
+
+        // If active role is 'docente', filter only publications from their advisees
+        if ($activeRole === 'docente') {
+            $query->whereHas('academicBond', function ($q) use ($user) {
+                $q->where('advisor_id', $user->id);
+            });
+        }
+        // If active role is 'admin' or empty, show all pending publications (no filter)
+
+        $publications = $query->orderBy('publication_date', 'desc')
             ->get()
             ->map(function ($publication) {
                 return [

@@ -943,7 +943,11 @@ export interface RejectPublicationResponse {
 
 // Publications Management API functions (for admin/docente)
 export const getPendingPublications = async (): Promise<PublicationForApproval[]> => {
-  const response = await api.get<PublicationForApproval[]>('/api/publications/pending');
+  // Get active role from localStorage to send to backend
+  const activeRole = localStorage.getItem('gestad-active-role') || '';
+  const response = await api.get<PublicationForApproval[]>('/api/publications/pending', {
+    params: { active_role: activeRole }
+  });
   return response.data;
 };
 

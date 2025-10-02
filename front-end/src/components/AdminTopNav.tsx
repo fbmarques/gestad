@@ -159,9 +159,12 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
           >
             <FileText className="w-4 h-4" />
             Produções
-            <span className="ml-2 px-2 py-1 text-xs bg-orange-500/20 text-orange-600 rounded-full">
-              {isLoading ? "..." : counts?.producoes?.toString() || "0"}
-            </span>
+            {/* Badge only visible for admin, not for docente */}
+            {activeRole === 'admin' && (
+              <span className="ml-2 px-2 py-1 text-xs bg-orange-500/20 text-orange-600 rounded-full">
+                {isLoading ? "..." : counts?.producoes?.toString() || "0"}
+              </span>
+            )}
           </Button>
 
           {/* Relatórios */}
