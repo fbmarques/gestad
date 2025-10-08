@@ -13,7 +13,9 @@ class CourseControllerTest extends TestCase
     use RefreshDatabase;
 
     private User $adminUser;
+
     private User $docenteUser;
+
     private User $discenteUser;
 
     protected function setUp(): void

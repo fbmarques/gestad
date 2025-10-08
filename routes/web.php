@@ -339,6 +339,32 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return view('app');
     });
+
+    // Chat route for discente (role 3)
+    Route::get('/chat', function () {
+        // Check if user has role 3 (discente)
+        $user = auth()->user();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [3])->exists();
+
+        if (! $hasAccess) {
+            return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);
+        }
+
+        return view('app');
+    });
+
+    // Chat route for docente (role 2)
+    Route::get('/chat-docente', function () {
+        // Check if user has role 2 (docente)
+        $user = auth()->user();
+        $hasAccess = $user && $user->roles()->whereIn('role_id', [2])->exists();
+
+        if (! $hasAccess) {
+            return response()->json(['error' => 'Acesso negado. Você não possui permissão para acessar esta área.'], 403);
+        }
+
+        return view('app');
+    });
 });
 
 // Catch-all route for React Router (SPA)
@@ -346,4 +372,4 @@ Route::middleware('auth:sanctum')->group(function () {
 // Exclude API routes and protected routes to prevent interference
 Route::get('/{any}', function () {
     return view('app');
-})->where('any', '^(?!api|administrativo|docente|discente|login|selecao|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes|producoes|producao|producoes-status).*');
+})->where('any', '^(?!api|administrativo|docente|discente|login|selecao|linhaspesquisa|linhapesquisa|disciplinas|disciplina|agencias|agencia|revistas|revista|eventos|evento|docentes|discentes|producoes|producao|producoes-status|chat|chat-docente).*');

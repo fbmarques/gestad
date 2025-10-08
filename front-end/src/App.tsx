@@ -24,6 +24,8 @@ import DiscentesExcluidos from "./pages/DiscentesExcluidos";
 import Discente from "./pages/Discente";
 import Producoes from "./pages/Producoes";
 import ProducoesStatus from "./pages/ProducoesStatus";
+import Chat from "./pages/Chat";
+import ChatDocente from "./pages/ChatDocente";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +65,8 @@ function App() {
             <Route path="/producoes" element={<Producoes />} />
             <Route path="/producao" element={<Producoes />} />
             <Route path="/producoes-status" element={<ProducoesStatus />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/chat-docente" element={<ChatDocente />} />
           </Routes>
         </BrowserRouter>
         <Toaster />

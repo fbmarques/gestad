@@ -1,10 +1,8 @@
-import { useNavigate } from "react-router-dom";
 import { DocenteDashboard } from "@/components/DocenteDashboard";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
 
 const Docente = () => {
-  const navigate = useNavigate();
   const { isDarkMode, toggleTheme } = useTheme();
 
   return (

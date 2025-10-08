@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import { Moon, Sun, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { WelcomeSection } from "@/components/discente/WelcomeSection";
 import { BasicInfoSection } from "@/components/discente/BasicInfoSection";
 import { LinkPeriodSection } from "@/components/discente/LinkPeriodSection";
@@ -13,6 +14,7 @@ import { EventsSection } from "@/components/discente/EventsSection";
 
 const Discente = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -29,13 +31,13 @@ const Discente = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = "/chat"}
+              onClick={() => navigate("/chat")}
               className="gap-2"
             >
               <MessageCircle className="w-4 h-4" />
               Chat
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -49,11 +51,11 @@ const Discente = () => {
               )}
               {isDarkMode ? "Claro" : "Escuro"}
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = "/selecao"}
+              onClick={() => navigate("/selecao")}
             >
               Voltar
             </Button>

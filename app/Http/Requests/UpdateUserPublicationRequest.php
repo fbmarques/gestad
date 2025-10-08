@@ -27,7 +27,9 @@ class UpdateUserPublicationRequest extends FormRequest
                 'date',
                 'before_or_equal:today',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     // Get publication from route
                     $publication = $this->route('publication');
@@ -43,14 +45,16 @@ class UpdateUserPublicationRequest extends FormRequest
                     if ($publicationDate && $value > $publicationDate) {
                         $fail('Data de aprovação deve ser anterior ou igual à data de publicação.');
                     }
-                }
+                },
             ],
             'publication_date' => [
                 'nullable',
                 'date',
                 'before_or_equal:today',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     // Get publication from route
                     $publication = $this->route('publication');
@@ -66,7 +70,7 @@ class UpdateUserPublicationRequest extends FormRequest
                     if ($approvalDate && $value < $approvalDate) {
                         $fail('Data de publicação deve ser posterior ou igual à data de aprovação.');
                     }
-                }
+                },
             ],
         ];
     }

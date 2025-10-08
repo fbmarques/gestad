@@ -49,7 +49,7 @@ class UpdateUserAcademicRequirementsTest extends TestCase
                     'defense_date',
                     'defense_completion_date',
                     'work_completed',
-                ]
+                ],
             ])
             ->assertJson([
                 'academic_requirements' => [
@@ -57,7 +57,7 @@ class UpdateUserAcademicRequirementsTest extends TestCase
                     'qualification_date' => '2024-12-01',
                     'defense_status' => 'Not Scheduled',
                     'work_completed' => false,
-                ]
+                ],
             ]);
     }
 
@@ -86,7 +86,7 @@ class UpdateUserAcademicRequirementsTest extends TestCase
                 'academic_requirements' => [
                     'qualification_status' => 'Scheduled',
                     'qualification_date' => '2024-12-15',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('academic_bonds', [
@@ -122,7 +122,7 @@ class UpdateUserAcademicRequirementsTest extends TestCase
                 'academic_requirements' => [
                     'qualification_status' => 'Completed',
                     'qualification_completion_date' => '2024-11-01',
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('academic_bonds', [
@@ -155,7 +155,7 @@ class UpdateUserAcademicRequirementsTest extends TestCase
                 'message' => 'Requisitos acadêmicos atualizados com sucesso.',
                 'academic_requirements' => [
                     'work_completed' => true,
-                ]
+                ],
             ]);
 
         $this->assertDatabaseHas('academic_bonds', [

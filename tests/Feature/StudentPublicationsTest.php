@@ -60,7 +60,7 @@ class StudentPublicationsTest extends TestCase
                     'status',
                     'status_display',
                     'can_select_for_pdf',
-                ]
+                ],
             ]);
     }
 
@@ -175,7 +175,7 @@ class StudentPublicationsTest extends TestCase
                     'id',
                     'name',
                     'qualis',
-                ]
+                ],
             ]);
     }
 

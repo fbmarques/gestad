@@ -26,7 +26,9 @@ class UpdateUserLinkPeriodRequest extends FormRequest
                 'nullable',
                 'date',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     $user = auth()->user();
                     $academicBond = $user->academicBonds()->where('status', 'active')->first();
@@ -37,13 +39,15 @@ class UpdateUserLinkPeriodRequest extends FormRequest
                     if ($endDate && $value > $endDate) {
                         $fail('Data de início deve ser anterior ou igual à data de término.');
                     }
-                }
+                },
             ],
             'end_date' => [
                 'nullable',
                 'date',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     $user = auth()->user();
                     $academicBond = $user->academicBonds()->where('status', 'active')->first();
@@ -54,7 +58,7 @@ class UpdateUserLinkPeriodRequest extends FormRequest
                     if ($startDate && $value < $startDate) {
                         $fail('Data de término deve ser posterior ou igual à data de início.');
                     }
-                }
+                },
             ],
         ];
     }

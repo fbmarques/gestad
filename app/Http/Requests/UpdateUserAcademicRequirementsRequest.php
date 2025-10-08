@@ -31,7 +31,9 @@ class UpdateUserAcademicRequirementsRequest extends FormRequest
                 'nullable',
                 'date',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     $qualificationStatus = $this->input('qualification_status');
                     if ($qualificationStatus !== 'Completed') {
@@ -42,7 +44,7 @@ class UpdateUserAcademicRequirementsRequest extends FormRequest
                     if ($qualificationDate && $value < $qualificationDate) {
                         $fail('Data de conclusão deve ser posterior ou igual à data da qualificação.');
                     }
-                }
+                },
             ],
             'defense_status' => ['nullable', 'in:Not Scheduled,Scheduled,Completed'],
             'defense_date' => [
@@ -53,7 +55,9 @@ class UpdateUserAcademicRequirementsRequest extends FormRequest
                 'nullable',
                 'date',
                 function ($attribute, $value, $fail) {
-                    if (!$value) return;
+                    if (! $value) {
+                        return;
+                    }
 
                     $defenseStatus = $this->input('defense_status');
                     if ($defenseStatus !== 'Completed') {
@@ -64,7 +68,7 @@ class UpdateUserAcademicRequirementsRequest extends FormRequest
                     if ($defenseDate && $value < $defenseDate) {
                         $fail('Data de conclusão deve ser posterior ou igual à data da defesa.');
                     }
-                }
+                },
             ],
             'work_completed' => ['nullable', 'boolean'],
         ];

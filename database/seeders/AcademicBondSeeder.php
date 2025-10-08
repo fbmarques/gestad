@@ -6,8 +6,8 @@ use App\Models\AcademicBond;
 use App\Models\Agency;
 use App\Models\ResearchLine;
 use App\Models\User;
-use Illuminate\Database\Seeder;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class AcademicBondSeeder extends Seeder
 {
@@ -32,6 +32,7 @@ class AcademicBondSeeder extends Seeder
 
         if ($discentes->isEmpty() || $docentes->isEmpty() || $agencies->isEmpty() || $researchLines->isEmpty()) {
             $this->command->warn('Não foi possível criar vínculos acadêmicos. Verifique se existem discentes, docentes, agências e linhas de pesquisa.');
+
             return;
         }
 
@@ -83,11 +84,11 @@ class AcademicBondSeeder extends Seeder
 
         // Methodology templates
         $methodologyTemplates = [
-            "Esta pesquisa adota abordagem qualitativa com estudo de caso múltiplo. A coleta de dados será realizada por meio de entrevistas semiestruturadas e análise documental. Os dados serão analisados utilizando análise de conteúdo segundo Bardin (2011).",
-            "A metodologia adotada é de natureza aplicada com abordagem quantitativa. Será realizado survey com questionário validado. A análise dos dados utilizará estatística descritiva e inferencial com apoio do software SPSS.",
-            "Pesquisa exploratória de natureza quali-quantitativa. A fase qualitativa incluirá grupos focais e a quantitativa aplicará questionários. A análise combinará análise temática e análise estatística multivariada.",
-            "Pesquisa-ação com desenvolvimento de artefato tecnológico. O ciclo incluirá: diagnóstico, planejamento, implementação, avaliação e reflexão. A validação será feita por especialistas e testes com usuários.",
-            "Revisão sistemática da literatura seguida de estudo bibliométrico. As bases consultadas serão Scopus, Web of Science e BRAPCI. A análise incluirá métricas de citação, cocitação e acoplamento bibliográfico.",
+            'Esta pesquisa adota abordagem qualitativa com estudo de caso múltiplo. A coleta de dados será realizada por meio de entrevistas semiestruturadas e análise documental. Os dados serão analisados utilizando análise de conteúdo segundo Bardin (2011).',
+            'A metodologia adotada é de natureza aplicada com abordagem quantitativa. Será realizado survey com questionário validado. A análise dos dados utilizará estatística descritiva e inferencial com apoio do software SPSS.',
+            'Pesquisa exploratória de natureza quali-quantitativa. A fase qualitativa incluirá grupos focais e a quantitativa aplicará questionários. A análise combinará análise temática e análise estatística multivariada.',
+            'Pesquisa-ação com desenvolvimento de artefato tecnológico. O ciclo incluirá: diagnóstico, planejamento, implementação, avaliação e reflexão. A validação será feita por especialistas e testes com usuários.',
+            'Revisão sistemática da literatura seguida de estudo bibliométrico. As bases consultadas serão Scopus, Web of Science e BRAPCI. A análise incluirá métricas de citação, cocitação e acoplamento bibliográfico.',
         ];
 
         $bondIndex = 0;
@@ -126,8 +127,8 @@ class AcademicBondSeeder extends Seeder
             $bondIndex++;
         }
 
-        $this->command->info("Vínculos acadêmicos criados com sucesso!");
-        $this->command->info("Total: {$totalStudents} vínculos ({$completedCount} concluídos, " . ($totalStudents - $completedCount) . " ativos)");
+        $this->command->info('Vínculos acadêmicos criados com sucesso!');
+        $this->command->info("Total: {$totalStudents} vínculos ({$completedCount} concluídos, ".($totalStudents - $completedCount).' ativos)');
     }
 
     private function createAcademicBond(
@@ -159,7 +160,7 @@ class AcademicBondSeeder extends Seeder
         // Format: YYYYNNNNN (4 digits year + 5 random digits = 9 total)
         $year = rand(2022, 2025);
         $randomDigits = str_pad(rand(0, 99999), 5, '0', STR_PAD_LEFT);
-        $matricula = $year . $randomDigits;
+        $matricula = $year.$randomDigits;
 
         // Calculate dates
         $startDate = Carbon::create($year, rand(1, 12), rand(1, 28));

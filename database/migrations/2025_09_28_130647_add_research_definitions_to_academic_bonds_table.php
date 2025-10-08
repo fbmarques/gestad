@@ -37,7 +37,7 @@ return new class extends Migration
                 'objectives_defined',
                 'objectives_text',
                 'methodology_defined',
-                'methodology_text'
+                'methodology_text',
             ]);
         });
     }

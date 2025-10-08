@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\AcademicBond;
 use App\Models\Journal;
 use App\Models\Publication;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -21,6 +20,7 @@ class PublicationSeeder extends Seeder
 
         if ($academicBonds->isEmpty() || $journals->isEmpty()) {
             $this->command->warn('Não foi possível criar publicações. Verifique se existem vínculos acadêmicos e periódicos.');
+
             return;
         }
 
@@ -62,7 +62,7 @@ class PublicationSeeder extends Seeder
 
                 // Count statistics
                 $publicationCount++;
-                match($publication->status) {
+                match ($publication->status) {
                     'S' => $submittedCount++,
                     'A' => $approvedCount++,
                     'P', 'D', 'I' => $publishedCount++,
@@ -77,11 +77,11 @@ class PublicationSeeder extends Seeder
             }
         }
 
-        $this->command->info("Publicações criadas com sucesso!");
+        $this->command->info('Publicações criadas com sucesso!');
         $this->command->info("Total: {$publicationCount} publicações");
         $this->command->info("- Submetidas (S): {$submittedCount}");
         $this->command->info("- Aprovadas (A): {$approvedCount}");
-        $this->command->info("- Publicadas (P): " . ($publishedCount - $deferredCount - $rejectedCount));
+        $this->command->info('- Publicadas (P): '.($publishedCount - $deferredCount - $rejectedCount));
         $this->command->info("- Deferidas (D): {$deferredCount}");
         $this->command->info("- Indeferidas (I): {$rejectedCount}");
     }
@@ -257,8 +257,9 @@ class PublicationSeeder extends Seeder
 
     private function generateDOI(): string
     {
-        $prefix = '10.' . rand(1000, 9999);
-        $suffix = 'jci.' . rand(2020, 2025) . '.' . rand(1, 12) . '.' . rand(1000, 9999);
-        return $prefix . '/' . $suffix;
+        $prefix = '10.'.rand(1000, 9999);
+        $suffix = 'jci.'.rand(2020, 2025).'.'.rand(1, 12).'.'.rand(1000, 9999);
+
+        return $prefix.'/'.$suffix;
     }
 }

@@ -1101,4 +1101,67 @@ export const getDashboardStatsDocente = async (): Promise<DashboardStatsResponse
   return response.data;
 };
 
+// Messages types
+export interface MessageDiscente {
+  id: string;
+  nome: string;
+  tipo: 'mestrado' | 'doutorado';
+  ultimaMensagem?: string;
+  horaUltimaMensagem?: string;
+  mensagensNaoLidas?: number;
+}
+
+export interface MessageData {
+  id: string;
+  text: string;
+  sender: 'user' | 'other';
+  timestamp: string;
+  isRead: boolean;
+  readAt?: string;
+}
+
+export interface SendMessageRequest {
+  recipient_id: number;
+  subject?: string;
+  body: string;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+}
+
+export interface AdvisorData {
+  id: number;
+  name: string;
+  type: string;
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
+// Messages API functions
+export const getStudentsForTeacher = async (): Promise<MessageDiscente[]> => {
+  const response = await api.get<MessageDiscente[]>('/api/messages/students');
+  return response.data;
+};
+
+export const getAdvisorsForStudent = async (): Promise<AdvisorData[]> => {
+  const response = await api.get<AdvisorData[]>('/api/messages/advisors');
+  return response.data;
+};
+
+export const getConversation = async (userId: number): Promise<MessageData[]> => {
+  const response = await api.get<MessageData[]>(`/api/messages/conversation/${userId}`);
+  return response.data;
+};
+
+export const sendMessage = async (data: SendMessageRequest): Promise<MessageData> => {
+  await api.get('/sanctum/csrf-cookie');
+  const response = await api.post<MessageData>('/api/messages/send', data);
+  return response.data;
+};
+
+export const getUnreadMessageCount = async (): Promise<number> => {
+  const response = await api.get<UnreadCountResponse>('/api/messages/unread-count');
+  return response.data.count;
+};
+
 export default api;

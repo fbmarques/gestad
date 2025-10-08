@@ -36,7 +36,7 @@ class StatsController extends Controller
             $discentesQuery->where(function ($query) use ($user) {
                 $query->whereHas('academicBonds', function ($q) use ($user) {
                     $q->where('advisor_id', $user->id)
-                      ->orWhere('co_advisor_id', $user->id);
+                        ->orWhere('co_advisor_id', $user->id);
                 });
             });
         }

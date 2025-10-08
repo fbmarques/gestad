@@ -139,7 +139,7 @@ class StudentDisciplinesApiTest extends TestCase
         StudentCourse::create([
             'academic_bond_id' => $academicBond->id,
             'course_id' => $course->id,
-            'docente_id' => $docente->id
+            'docente_id' => $docente->id,
         ]);
 
         // Authenticate as the student
@@ -174,7 +174,7 @@ class StudentDisciplinesApiTest extends TestCase
         $studentCourse = StudentCourse::create([
             'academic_bond_id' => $academicBond->id,
             'course_id' => $course->id,
-            'docente_id' => $docente->id
+            'docente_id' => $docente->id,
         ]);
 
         // Authenticate as the student

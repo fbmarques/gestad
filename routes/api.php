@@ -9,6 +9,7 @@ use App\Http\Controllers\DiscenteController;
 use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\JournalController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicationController;
 use App\Http\Controllers\ResearchLineController;
@@ -112,4 +113,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/publications/rejected', [PublicationController::class, 'rejected']);
     Route::patch('/publications/{publication}/approve', [PublicationController::class, 'approve']);
     Route::patch('/publications/{publication}/reject', [PublicationController::class, 'reject']);
+
+    // Messages routes (accessible by authenticated users)
+    Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);
+    Route::get('/messages/students', [MessageController::class, 'getStudentsForTeacher']);
+    Route::get('/messages/advisors', [MessageController::class, 'getAdvisorsForStudent']);
+    Route::get('/messages/conversation/{userId}', [MessageController::class, 'getConversation']);
+    Route::post('/messages/send', [MessageController::class, 'sendMessage']);
 });

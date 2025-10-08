@@ -35,7 +35,7 @@ return new class extends Migration
                 'defense_status',
                 'defense_date',
                 'defense_completion_date',
-                'work_completed'
+                'work_completed',
             ]);
         });
     }

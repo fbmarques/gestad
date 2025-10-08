@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('research_lines', function (Blueprint $table) {
-            if (!Schema::hasColumn('research_lines', 'alias')) {
+            if (! Schema::hasColumn('research_lines', 'alias')) {
                 $table->string('alias')->nullable()->after('name');
             }
         });
@@ -29,5 +29,3 @@ return new class extends Migration
         // Foreign key changes will be handled by dedicated foreign key migration rollback
     }
 };
-
-

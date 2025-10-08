@@ -10,7 +10,7 @@ import {
   Calendar,
   TrendingUp,
   Award,
-  Bell,
+  MessageSquare,
   Settings,
   PieChart as PieChartIcon,
   BarChart3,
@@ -20,7 +20,8 @@ import {
   Lightbulb
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardStatsDocente } from "@/lib/api";
+import { getDashboardStatsDocente, getUnreadMessageCount } from "@/lib/api";
+import { useNavigate } from "react-router-dom";
 
 interface StatCard {
   title: string;
@@ -39,9 +40,18 @@ const chartConfig = {
 };
 
 export function DocenteDashboard() {
+  const navigate = useNavigate();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboard-docente-stats'],
     queryFn: getDashboardStatsDocente,
+  });
+
+  // Get unread message count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unread-message-count'],
+    queryFn: getUnreadMessageCount,
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   if (isLoading) {
@@ -167,9 +177,19 @@ export function DocenteDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Bell className="w-4 h-4 mr-2" />
-            Notificações
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/chat-docente")}
+            className="relative"
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Chat Discentes
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
           </Button>
         </div>
       </div>

@@ -31,7 +31,7 @@ class ProfileControllerTest extends TestCase
                 'roles' => [
                     ['slug' => 'admin', 'name' => 'Administrator'],
                     ['slug' => 'docente', 'name' => 'Docente'],
-                ]
+                ],
             ]);
     }
 
@@ -53,7 +53,7 @@ class ProfileControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'roles' => []
+                'roles' => [],
             ]);
     }
 }
