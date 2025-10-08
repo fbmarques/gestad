@@ -10,17 +10,21 @@ use App\Models\Agency;
 use App\Models\ResearchLine;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DiscenteController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $user = auth()->user();
         if (! $user || ! $user->roles()->whereIn('role_id', [1, 2])->exists()) {
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
-        $discentes = User::whereHas('roles', function ($query) {
+        // Get active role from request parameter (sent from frontend)
+        $activeRole = $request->query('active_role', '');
+
+        $query = User::whereHas('roles', function ($query) {
             $query->where('role_id', 3);
         })
             ->with([
@@ -29,8 +33,18 @@ class DiscenteController extends Controller
                 },
                 'academicBonds.advisor:id,name',
                 'academicBonds.coAdvisor:id,name',
-            ])
-            ->orderBy('name')
+            ]);
+
+        // If active role is 'docente', filter only students advised by this user
+        if ($activeRole === 'docente') {
+            $query->whereHas('academicBonds', function ($q) use ($user) {
+                $q->where('advisor_id', $user->id)
+                    ->orWhere('co_advisor_id', $user->id);
+            });
+        }
+        // If active role is 'admin' or empty, show all students (no filter)
+
+        $discentes = $query->orderBy('name')
             ->get()
             ->map(function ($discente) {
                 $masterBond = $discente->academicBonds->where('level', 'master')->first();
@@ -134,6 +148,79 @@ class DiscenteController extends Controller
             'nivel_pos_graduacao' => $doctorateBond ? 'doutorado' : ($masterBond ? 'mestrado' : 'indefinido'),
             'mestrado_status' => $masterBond?->status ?? 'nao-iniciado',
             'doutorado_status' => $doctorateBond?->status ?? 'nao-iniciado',
+        ]);
+    }
+
+    public function getAcademicBondDetails(int $id): JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->roles()->whereIn('role_id', [1, 2])->exists()) {
+            return response()->json(['error' => 'Acesso negado.'], 403);
+        }
+
+        $discente = User::where('id', $id)
+            ->whereHas('roles', function ($query) {
+                $query->where('role_id', 3);
+            })
+            ->first();
+
+        if (! $discente) {
+            return response()->json(['error' => 'Discente não encontrado.'], 404);
+        }
+
+        // Get all academic bonds with relationships
+        $academicBonds = AcademicBond::where('student_id', $discente->id)
+            ->with([
+                'advisor:id,name',
+                'coAdvisor:id,name',
+                'agency:id,name,alias',
+                'researchLine:id,name,alias',
+            ])
+            ->orderBy('level')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($bond) {
+                $levelMap = [
+                    'graduation' => 'Graduação',
+                    'master' => 'Mestrado',
+                    'doctorate' => 'Doutorado',
+                    'post-doctorate' => 'Pós-Doutorado',
+                ];
+
+                return [
+                    'id' => $bond->id,
+                    'level' => $levelMap[$bond->level] ?? $bond->level,
+                    'status' => $bond->status,
+                    'advisor' => $bond->advisor ? $bond->advisor->name : 'Sem orientador',
+                    'co_advisor' => $bond->coAdvisor ? $bond->coAdvisor->name : null,
+                    'agency' => $bond->agency ? $bond->agency->name : 'Sem agência',
+                    'research_line' => $bond->researchLine ? $bond->researchLine->name : 'Sem linha de pesquisa',
+                    'start_date' => $bond->start_date?->format('d/m/Y'),
+                    'end_date' => $bond->end_date?->format('d/m/Y'),
+                    'title' => $bond->title,
+                    'description' => $bond->description,
+                    'problem_defined' => $bond->problem_defined,
+                    'problem_text' => $bond->problem_text,
+                    'question_defined' => $bond->question_defined,
+                    'question_text' => $bond->question_text,
+                    'objectives_defined' => $bond->objectives_defined,
+                    'objectives_text' => $bond->objectives_text,
+                    'methodology_defined' => $bond->methodology_defined,
+                    'methodology_text' => $bond->methodology_text,
+                    'qualification_status' => $bond->qualification_status,
+                    'qualification_date' => $bond->qualification_date?->format('d/m/Y'),
+                    'qualification_completion_date' => $bond->qualification_completion_date?->format('d/m/Y'),
+                    'defense_status' => $bond->defense_status,
+                    'defense_date' => $bond->defense_date?->format('d/m/Y'),
+                    'defense_completion_date' => $bond->defense_completion_date?->format('d/m/Y'),
+                    'work_completed' => $bond->work_completed,
+                ];
+            });
+
+        return response()->json([
+            'student_name' => $discente->name,
+            'student_email' => $discente->email,
+            'academic_bonds' => $academicBonds,
         ]);
     }
 

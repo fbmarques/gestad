@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminTopNav from "@/components/AdminTopNav";
 import { useTheme } from "@/hooks/useTheme";
+import { useActiveRole } from "@/hooks/useActiveRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,15 +13,49 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Check, ChevronsUpDown, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Edit, ChevronLeft, ChevronRight, Check, ChevronsUpDown, RotateCcw, Map, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getDiscentes, getDocentesDropdown, createDiscente, updateDiscente, deleteDiscente, getDiscenteAvailableLevels, resetDiscentePassword, Discente, DocenteDropdown, DiscenteFormData } from "@/lib/api";
+import { getDiscentes, getDocentesDropdown, createDiscente, updateDiscente, deleteDiscente, getDiscenteAvailableLevels, resetDiscentePassword, getStudentAcademicBondDetails, Discente, DocenteDropdown, DiscenteFormData, StudentAcademicBondData } from "@/lib/api";
 
+// Helper function to translate academic status to Brazilian Portuguese
+const translateStatus = (status: string | null | undefined): string => {
+  if (!status) return '';
+
+  const statusMap: { [key: string]: string } = {
+    'Not Scheduled': 'Não Agendada',
+    'not scheduled': 'Não Agendada',
+    'Scheduled': 'Agendada',
+    'scheduled': 'Agendada',
+    'Completed': 'Concluída',
+    'completed': 'Concluída',
+    'Approved': 'Aprovada',
+    'approved': 'Aprovada',
+    'Pending': 'Pendente',
+    'pending': 'Pendente',
+  };
+
+  return statusMap[status] || status;
+};
+
+// Helper function to format academic requirement status with completion date
+const formatAcademicStatus = (status: string | null | undefined, completionDate: string | null | undefined): string => {
+  const translatedStatus = translateStatus(status);
+
+  if (!translatedStatus) return '';
+
+  // If status is "Concluída" and there's a completion date, append it
+  if ((status === 'Completed' || status === 'completed') && completionDate) {
+    return `${translatedStatus} - ${completionDate}`;
+  }
+
+  return translatedStatus;
+};
 
 const Discentes = () => {
   const { isDarkMode, toggleTheme } = useTheme();
+  const { activeRole } = useActiveRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
@@ -36,8 +71,14 @@ const Discentes = () => {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [availableLevels, setAvailableLevels] = useState<string[]>([]);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentData, setSelectedStudentData] = useState<StudentAcademicBondData | null>(null);
 
   const queryClient = useQueryClient();
+
+  // Check if user is docente (should not see Edit and Delete buttons)
+  const isDocente = activeRole === 'docente';
 
   // Fetch discentes
   const { data: discentes = [], isLoading } = useQuery({
@@ -218,6 +259,18 @@ const Discentes = () => {
     setEditDiscenteOpen(true);
   };
 
+  const handleViewStudentMap = async (discenteId: number) => {
+    try {
+      const data = await getStudentAcademicBondDetails(discenteId);
+      setSelectedStudentData(data);
+      setSelectedStudentId(discenteId);
+      setMapModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching student academic bond details:', error);
+      alert('Erro ao carregar informações do discente.');
+    }
+  };
+
   return (
     <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-background">
@@ -230,14 +283,15 @@ const Discentes = () => {
                     <CardHeader>
                       <div className="flex justify-between items-center">
                         <CardTitle>Gerenciamento de Discentes</CardTitle>
-                        <div className="flex gap-2">
-                          <Dialog open={newDiscenteOpen} onOpenChange={setNewDiscenteOpen}>
-                            <DialogTrigger asChild>
-                              <Button className="gap-2">
-                                <Plus className="w-4 h-4" />
-                                Novo Discente
-                              </Button>
-                            </DialogTrigger>
+                        {!isDocente && (
+                          <div className="flex gap-2">
+                            <Dialog open={newDiscenteOpen} onOpenChange={setNewDiscenteOpen}>
+                              <DialogTrigger asChild>
+                                <Button className="gap-2">
+                                  <Plus className="w-4 h-4" />
+                                  Novo Discente
+                                </Button>
+                              </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader className="pb-4">
                                 <DialogTitle className="text-xl font-semibold">Adicionar Novo Discente</DialogTitle>
@@ -415,16 +469,17 @@ const Discentes = () => {
                               </div>
                             </DialogContent>
                           </Dialog>
-                          
-                          <Button 
-                            variant="outline" 
-                            size="icon" 
+
+                          <Button
+                            variant="outline"
+                            size="icon"
                             title="Recuperar discentes excluídos"
                             onClick={() => navigate("/discentes-excluidos")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -469,8 +524,9 @@ const Discentes = () => {
                                 <TableHead className="font-bold text-foreground">Orientador</TableHead>
                                 <TableHead className="font-bold text-foreground">Mestrado</TableHead>
                                 <TableHead className="font-bold text-foreground">Doutorado</TableHead>
-                                <TableHead className="w-12 font-bold text-foreground">Edt</TableHead>
-                                <TableHead className="w-12 font-bold text-foreground">Exc</TableHead>
+                                <TableHead className="w-12 font-bold text-foreground">Mapa</TableHead>
+                                {!isDocente && <TableHead className="w-12 font-bold text-foreground">Edt</TableHead>}
+                                {!isDocente && <TableHead className="w-12 font-bold text-foreground">Exc</TableHead>}
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -500,17 +556,29 @@ const Discentes = () => {
                                     </span>
                                   </TableCell>
                                   <TableCell>
-                                    <Dialog open={editDiscenteOpen} onOpenChange={setEditDiscenteOpen}>
-                                      <DialogTrigger asChild>
-                                         <Button
-                                           variant="outline"
-                                           size="icon"
-                                           className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
-                                           onClick={() => handleEditDiscente(discente)}
-                                         >
-                                           <Edit className="w-4 h-4" />
-                                         </Button>
-                                      </DialogTrigger>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="bg-blue-500 border-blue-500 text-white hover:bg-blue-600 hover:border-blue-600"
+                                      onClick={() => handleViewStudentMap(discente.id)}
+                                      title="Ver mapa do discente"
+                                    >
+                                      <Map className="w-4 h-4" />
+                                    </Button>
+                                  </TableCell>
+                                  {!isDocente && (
+                                    <TableCell>
+                                      <Dialog open={editDiscenteOpen} onOpenChange={setEditDiscenteOpen}>
+                                        <DialogTrigger asChild>
+                                           <Button
+                                             variant="outline"
+                                             size="icon"
+                                             className="bg-amber-400 border-amber-400 text-white hover:bg-amber-500 hover:border-amber-500"
+                                             onClick={() => handleEditDiscente(discente)}
+                                           >
+                                             <Edit className="w-4 h-4" />
+                                           </Button>
+                                        </DialogTrigger>
                                       <DialogContent className="max-w-2xl">
                                         <DialogHeader className="pb-4">
                                           <DialogTitle className="text-xl font-semibold">Editar Discente</DialogTitle>
@@ -695,34 +763,37 @@ const Discentes = () => {
                                       </DialogContent>
                                     </Dialog>
                                   </TableCell>
-                                  <TableCell>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                         <Button variant="outline" size="icon" className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600">
-                                           <Trash2 className="w-4 h-4" />
-                                         </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Tem certeza que deseja excluir o discente "{discente.nome}"? Esta ação pode ser desfeita na recuperação de discentes excluídos.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                          <AlertDialogAction onClick={() => handleDelete(discente.id)}>
-                                            Excluir
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </TableCell>
+                                  )}
+                                  {!isDocente && (
+                                    <TableCell>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                           <Button variant="outline" size="icon" className="bg-red-500 border-red-500 text-white hover:bg-red-600 hover:border-red-600">
+                                             <Trash2 className="w-4 h-4" />
+                                           </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja excluir o discente "{discente.nome}"? Esta ação pode ser desfeita na recuperação de discentes excluídos.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(discente.id)}>
+                                              Excluir
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </TableCell>
+                                  )}
                                 </TableRow>
                               ))}
                               {currentDiscentes.length === 0 && (
                                  <TableRow>
-                                   <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                   <TableCell colSpan={isDocente ? 6 : 8} className="text-center py-8 text-muted-foreground">
                                      {searchTerm ? "Nenhum discente encontrado" : "Nenhum registro para exibir"}
                                    </TableCell>
                                  </TableRow>
@@ -796,6 +867,132 @@ const Discentes = () => {
                   </Card>
           </div>
         </div>
+
+        {/* Fullscreen Student Map Modal */}
+        {mapModalOpen && selectedStudentData && (
+          <div className="fixed inset-0 z-50 bg-background flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-2xl font-bold">{selectedStudentData.student_name}</h2>
+                <p className="text-sm text-muted-foreground">{selectedStudentData.student_email}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setMapModalOpen(false);
+                  setSelectedStudentData(null);
+                  setSelectedStudentId(null);
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="max-w-6xl mx-auto space-y-6">
+                {selectedStudentData.academic_bonds.map((bond, index) => (
+                  <Card key={bond.id} className="overflow-hidden">
+                    <CardHeader className="bg-muted/50">
+                      <CardTitle className="flex items-center justify-between">
+                        <span>{bond.level}</span>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          bond.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          bond.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {bond.status === 'completed' ? 'Concluído' :
+                           bond.status === 'active' ? 'Ativo' : bond.status}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                      {/* Basic Info - Always show all 6 fields in 2 columns */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Orientador</p>
+                          <p className="text-base">{bond.advisor}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Co-Orientador</p>
+                          <p className="text-base">{bond.co_advisor || 'Sem co-orientador'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Linha de Pesquisa</p>
+                          <p className="text-base">{bond.research_line}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Agência de Fomento</p>
+                          <p className="text-base">{bond.agency || 'Sem agência'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Data de Início</p>
+                          <p className="text-base">{bond.start_date || 'Não informada'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Data de Término</p>
+                          <p className="text-base">{bond.end_date || 'Não informada'}</p>
+                        </div>
+                      </div>
+
+                      {/* Research Definitions - Always show all 4 fields */}
+                      <div className="border-t pt-4 space-y-4">
+                        <h3 className="text-lg font-semibold">Definições de Pesquisa</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Problema</p>
+                            <p className="text-sm">{bond.problem_text || 'Ainda não informado'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Questão de Pesquisa</p>
+                            <p className="text-sm">{bond.question_text || ''}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Objetivos</p>
+                            <p className="text-sm">{bond.objectives_text || ''}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Metodologia</p>
+                            <p className="text-sm">{bond.methodology_text || ''}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Academic Requirements */}
+                      <div className="border-t pt-4 space-y-4">
+                        <h3 className="text-lg font-semibold">Requisitos Acadêmicos</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Status da Qualificação</p>
+                            <p className="text-base">{formatAcademicStatus(bond.qualification_status, bond.qualification_completion_date)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Status da Defesa</p>
+                            <p className="text-base">{formatAcademicStatus(bond.defense_status, bond.defense_completion_date)}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Trabalho Concluído</p>
+                          <p className="text-base">Não entregue</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {selectedStudentData.academic_bonds.length === 0 && (
+                  <Card>
+                    <CardContent className="p-6 text-center text-muted-foreground">
+                      Nenhum vínculo acadêmico encontrado para este discente.
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

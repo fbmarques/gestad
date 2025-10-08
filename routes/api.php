@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/discentes-trashed', [DiscenteController::class, 'trashed']);
     Route::post('/discentes/{id}/restore', [DiscenteController::class, 'restore']);
     Route::get('/discentes/{id}/available-levels', [DiscenteController::class, 'getAvailableLevels']);
+    Route::get('/discentes/{id}/academic-bond-details', [DiscenteController::class, 'getAcademicBondDetails']);
     Route::post('/discentes/{id}/reset-password', [DiscenteController::class, 'resetPassword']);
     Route::get('/docentes-dropdown', [DiscenteController::class, 'docentes']);
 

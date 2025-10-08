@@ -447,9 +447,54 @@ export interface DocenteDropdown {
   name: string;
 }
 
+// Academic Bond Details interface
+export interface AcademicBondDetails {
+  id: number;
+  level: string;
+  status: string;
+  advisor: string;
+  co_advisor: string | null;
+  agency: string;
+  research_line: string;
+  start_date: string | null;
+  end_date: string | null;
+  title: string | null;
+  description: string | null;
+  problem_defined: boolean;
+  problem_text: string | null;
+  question_defined: boolean;
+  question_text: string | null;
+  objectives_defined: boolean;
+  objectives_text: string | null;
+  methodology_defined: boolean;
+  methodology_text: string | null;
+  qualification_status: string | null;
+  qualification_date: string | null;
+  qualification_completion_date: string | null;
+  defense_status: string | null;
+  defense_date: string | null;
+  defense_completion_date: string | null;
+  work_completed: boolean;
+}
+
+export interface StudentAcademicBondData {
+  student_name: string;
+  student_email: string;
+  academic_bonds: AcademicBondDetails[];
+}
+
 // Discentes API functions
 export const getDiscentes = async (): Promise<Discente[]> => {
-  const response = await api.get<Discente[]>('/api/discentes');
+  // Get active role from localStorage to send to backend
+  const activeRole = localStorage.getItem('gestad-active-role') || '';
+  const response = await api.get<Discente[]>('/api/discentes', {
+    params: { active_role: activeRole }
+  });
+  return response.data;
+};
+
+export const getStudentAcademicBondDetails = async (id: number): Promise<StudentAcademicBondData> => {
+  const response = await api.get<StudentAcademicBondData>(`/api/discentes/${id}/academic-bond-details`);
   return response.data;
 };
 
@@ -553,7 +598,11 @@ export const getStudentData = async (): Promise<StudentData> => {
 
 // Stats API functions
 export const getStatsCounts = async (): Promise<StatsCountsResponse> => {
-  const response = await api.get<StatsCountsResponse>('/api/stats/counts');
+  // Get active role from localStorage to send to backend
+  const activeRole = localStorage.getItem('gestad-active-role') || '';
+  const response = await api.get<StatsCountsResponse>('/api/stats/counts', {
+    params: { active_role: activeRole }
+  });
   return response.data;
 };
 

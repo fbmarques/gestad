@@ -26,8 +26,9 @@ const AdminTopNav = ({ isDarkMode, toggleTheme }: AdminTopNavProps) => {
   const { activeRole, getDashboardRoute, clearActiveRole } = useActiveRole();
 
   // Buscar contadores da API
+  // Include activeRole in queryKey to ensure different cache for admin vs docente
   const { data: counts, isLoading } = useQuery({
-    queryKey: ['stats-counts'],
+    queryKey: ['stats-counts', activeRole],
     queryFn: getStatsCounts,
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchInterval: 1000 * 60 * 5, // Refetch a cada 5 minutos

@@ -20,10 +20,29 @@ class StatsController extends Controller
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
+        // Get active_role from request parameter (sent from frontend)
+        $activeRole = request()->query('active_role', '');
+
+        // Determine if we should filter by advisor based on active role
+        $isDocenteRole = $activeRole === 'docente';
+
+        // For discentes count, filter by advisor/co-advisor if active role is docente
+        $discentesQuery = User::whereHas('roles', function ($query) {
+            $query->where('role_id', 3);
+        });
+
+        if ($isDocenteRole) {
+            // Filter only students that this docente advises
+            $discentesQuery->where(function ($query) use ($user) {
+                $query->whereHas('academicBonds', function ($q) use ($user) {
+                    $q->where('advisor_id', $user->id)
+                      ->orWhere('co_advisor_id', $user->id);
+                });
+            });
+        }
+
         $counts = [
-            'discentes' => User::whereHas('roles', function ($query) {
-                $query->where('role_id', 3);
-            })->count(),
+            'discentes' => $discentesQuery->count(),
             'docentes' => User::whereHas('roles', function ($query) {
                 $query->where('role_id', 2);
             })->count(),
