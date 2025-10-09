@@ -1111,13 +1111,24 @@ export interface MessageDiscente {
   mensagensNaoLidas?: number;
 }
 
+export interface ReadDetail {
+  user_id: number;
+  user_name: string;
+  read_at: string;
+}
+
 export interface MessageData {
   id: string;
   text: string;
-  sender: 'user' | 'other';
+  sender: 'user' | 'other' | 'advisor' | 'co-advisor' | 'student';
+  senderName?: string;
+  senderId?: number;
   timestamp: string;
-  isRead: boolean;
+  isRead?: boolean;
   readAt?: string;
+  isReadByUser?: boolean;
+  readBy?: number[];
+  readDetails?: ReadDetail[];
 }
 
 export interface SendMessageRequest {

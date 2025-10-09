@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Send, Check, CheckCheck } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAdvisorsForStudent,
@@ -88,6 +89,17 @@ const Chat = () => {
     });
   };
 
+  const formatReadTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
   if (isLoadingAdvisors) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -157,10 +169,10 @@ const Chat = () => {
                 }`}
               >
                 <div className={`max-w-[70%] ${message.sender === "user" ? "order-2" : ""}`}>
-                  {message.sender === "other" && (
+                  {message.sender !== "user" && (
                     <div className="flex items-center mb-1">
                       <span className="text-sm font-medium text-foreground">
-                        {currentAdvisor.name}
+                        {message.senderName || currentAdvisor.name}
                       </span>
                     </div>
                   )}
@@ -169,6 +181,10 @@ const Chat = () => {
                     className={`rounded-lg px-4 py-2 ${
                       message.sender === "user"
                         ? "bg-primary text-primary-foreground"
+                        : message.sender === "advisor"
+                        ? "bg-muted"
+                        : message.sender === "co-advisor"
+                        ? "bg-amber-50 dark:bg-amber-950 text-foreground"
                         : "bg-muted"
                     }`}
                   >
@@ -179,19 +195,38 @@ const Chat = () => {
                     message.sender === "user" ? "justify-end" : "justify-start"
                   }`}>
                     <span>{formatTime(message.timestamp)}</span>
-                    {message.sender === "user" && (
-                      <div className="flex items-center gap-1">
-                        {message.isRead ? (
-                          <>
-                            <CheckCheck className="w-3 h-3 text-blue-500" />
-                            <span className="text-blue-500">
-                              Lida
-                            </span>
-                          </>
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
-                      </div>
+                    {message.sender === "user" && message.readDetails && message.readDetails.length > 0 && (
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 cursor-help">
+                              {message.readDetails.length > 0 ? (
+                                <>
+                                  <CheckCheck className="w-3 h-3 text-blue-500" />
+                                  <span className="text-blue-500">
+                                    Lida por {message.readDetails.length}
+                                  </span>
+                                </>
+                              ) : (
+                                <Check className="w-3 h-3" />
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs" side="top">
+                            <div className="space-y-2">
+                              <p className="font-semibold text-xs mb-2">Lida por:</p>
+                              {message.readDetails.map((detail) => (
+                                <div key={detail.user_id} className="flex flex-col gap-0.5">
+                                  <span className="font-medium text-xs">{detail.user_name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatReadTime(detail.read_at)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                   </div>
                 </div>

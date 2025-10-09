@@ -23,46 +23,42 @@ class MessageController extends Controller
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
-        // Get students where user is advisor or co-advisor
-        $students = User::query()
-            ->whereHas('academicBonds', function ($query) use ($user) {
-                $query->where('advisor_id', $user->id)
-                    ->orWhere('co_advisor_id', $user->id);
-            })
-            ->with(['academicBonds' => function ($query) use ($user) {
-                $query->where('advisor_id', $user->id)
-                    ->orWhere('co_advisor_id', $user->id);
-            }])
+        // Get academic bonds where user is advisor or co-advisor
+        $bonds = AcademicBond::where('advisor_id', $user->id)
+            ->orWhere('co_advisor_id', $user->id)
+            ->with(['student'])
             ->get()
-            ->map(function ($student) use ($user) {
-                // Get latest message between teacher and student
-                $latestMessage = Message::conversationBetween($user->id, $student->id)
+            ->map(function ($bond) use ($user) {
+                // Get latest message for this academic bond
+                $latestMessage = Message::forAcademicBond($bond->id)
                     ->latest()
                     ->first();
 
-                // Count unread messages from student to teacher
-                $unreadCount = Message::where('sender_id', $student->id)
-                    ->where('recipient_id', $user->id)
-                    ->unread()
+                // Count unread messages for current user in this bond
+                $unreadCount = Message::forAcademicBond($bond->id)
+                    ->whereDoesntHave('reads', function ($query) use ($user) {
+                        $query->where('user_id', $user->id);
+                    })
+                    ->where('sender_id', '!=', $user->id)
                     ->count();
 
-                $bond = $student->academicBonds->first();
-
                 return [
-                    'id' => (string) $student->id,
-                    'nome' => $student->name,
-                    'tipo' => $bond?->level ?? 'mestrado',
+                    'id' => (string) $bond->student->id,
+                    'bondId' => (string) $bond->id,
+                    'nome' => $bond->student->name,
+                    'tipo' => $bond->level ?? 'mestrado',
                     'ultimaMensagem' => $latestMessage?->body,
                     'horaUltimaMensagem' => $latestMessage?->created_at->toISOString(),
                     'mensagensNaoLidas' => $unreadCount,
                 ];
             });
 
-        return response()->json($students);
+        return response()->json($bonds);
     }
 
     /**
-     * Get conversation between two users.
+     * Get conversation for an academic bond (group conversation).
+     * All participants (student, advisor, co-advisor) see all messages.
      */
     public function getConversation(Request $request, int $userId): JsonResponse
     {
@@ -78,8 +74,8 @@ class MessageController extends Controller
             return response()->json(['error' => 'Usuário não encontrado.'], 404);
         }
 
-        // Verify that users have a relationship (advisor-student or co-advisor-student)
-        $hasRelationship = AcademicBond::where(function ($query) use ($currentUser, $otherUser) {
+        // Find the academic bond that connects these users
+        $bond = AcademicBond::where(function ($query) use ($currentUser, $otherUser) {
             $query->where('student_id', $currentUser->id)
                 ->where(function ($q) use ($otherUser) {
                     $q->where('advisor_id', $otherUser->id)
@@ -91,41 +87,68 @@ class MessageController extends Controller
                     $q->where('advisor_id', $currentUser->id)
                         ->orWhere('co_advisor_id', $currentUser->id);
                 });
-        })->exists();
+        })->with(['advisor', 'coAdvisor', 'student'])
+            ->first();
 
-        if (! $hasRelationship) {
+        if (! $bond) {
             return response()->json(['error' => 'Você não tem permissão para conversar com este usuário.'], 403);
         }
 
-        $messages = Message::conversationBetween($currentUser->id, $userId)
-            ->with(['sender', 'recipient'])
+        // Get all messages for this academic bond
+        $messages = Message::forAcademicBond($bond->id)
+            ->with(['sender', 'reads.user'])
             ->orderBy('created_at', 'asc')
             ->get()
-            ->map(function ($message) use ($currentUser) {
+            ->map(function ($message) use ($currentUser, $bond) {
+                $senderType = 'user';
+                if ($message->sender_id !== $currentUser->id) {
+                    if ($message->sender_id === $bond->student_id) {
+                        $senderType = 'student';
+                    } elseif ($message->sender_id === $bond->advisor_id) {
+                        $senderType = 'advisor';
+                    } elseif ($message->sender_id === $bond->co_advisor_id) {
+                        $senderType = 'co-advisor';
+                    }
+                }
+
+                // Build detailed read information
+                $readDetails = $message->reads->map(function ($read) {
+                    return [
+                        'user_id' => $read->user_id,
+                        'user_name' => $read->user->name,
+                        'read_at' => $read->read_at->toISOString(),
+                    ];
+                })->values()->toArray();
+
                 return [
                     'id' => (string) $message->id,
                     'text' => $message->body,
-                    'sender' => $message->sender_id === $currentUser->id ? 'user' : 'other',
+                    'sender' => $message->sender_id === $currentUser->id ? 'user' : $senderType,
+                    'senderName' => $message->sender->name,
+                    'senderId' => $message->sender_id,
                     'timestamp' => $message->created_at->toISOString(),
-                    'isRead' => $message->is_read,
-                    'readAt' => $message->read_at?->toISOString(),
+                    'isReadByUser' => $message->isReadBy($currentUser->id),
+                    'readBy' => $message->reads->pluck('user_id')->toArray(),
+                    'readDetails' => $readDetails,
                 ];
             });
 
-        // Mark messages as read
-        Message::where('recipient_id', $currentUser->id)
-            ->where('sender_id', $userId)
-            ->unread()
+        // Mark unread messages as read by current user
+        Message::forAcademicBond($bond->id)
+            ->whereDoesntHave('reads', function ($query) use ($currentUser) {
+                $query->where('user_id', $currentUser->id);
+            })
+            ->where('sender_id', '!=', $currentUser->id)
             ->get()
-            ->each(function ($message) {
-                $message->markAsRead();
+            ->each(function ($message) use ($currentUser) {
+                $message->markAsReadBy($currentUser->id);
             });
 
         return response()->json($messages);
     }
 
     /**
-     * Send a message.
+     * Send a message to academic bond group.
      */
     public function sendMessage(SendMessageRequest $request): JsonResponse
     {
@@ -142,8 +165,8 @@ class MessageController extends Controller
             return response()->json(['error' => 'Destinatário não encontrado.'], 404);
         }
 
-        // Verify relationship
-        $hasRelationship = AcademicBond::where(function ($query) use ($currentUser, $recipientId) {
+        // Find academic bond
+        $bond = AcademicBond::where(function ($query) use ($currentUser, $recipientId) {
             $query->where('student_id', $currentUser->id)
                 ->where(function ($q) use ($recipientId) {
                     $q->where('advisor_id', $recipientId)
@@ -155,13 +178,15 @@ class MessageController extends Controller
                     $q->where('advisor_id', $currentUser->id)
                         ->orWhere('co_advisor_id', $currentUser->id);
                 });
-        })->exists();
+        })->first();
 
-        if (! $hasRelationship) {
+        if (! $bond) {
             return response()->json(['error' => 'Você não tem permissão para enviar mensagens para este usuário.'], 403);
         }
 
+        // Create message for academic bond (group message)
         $message = Message::create([
+            'academic_bond_id' => $bond->id,
             'sender_id' => $currentUser->id,
             'recipient_id' => $recipientId,
             'subject' => $request->validated()['subject'] ?? 'Mensagem',
@@ -169,12 +194,30 @@ class MessageController extends Controller
             'priority' => $request->validated()['priority'] ?? 'normal',
         ]);
 
+        // Mark as read by sender immediately
+        $message->markAsReadBy($currentUser->id);
+
+        // Refresh to get the read relationship
+        $message->load('reads.user');
+
+        $readDetails = $message->reads->map(function ($read) {
+            return [
+                'user_id' => $read->user_id,
+                'user_name' => $read->user->name,
+                'read_at' => $read->read_at->toISOString(),
+            ];
+        })->values()->toArray();
+
         return response()->json([
             'id' => (string) $message->id,
             'text' => $message->body,
             'sender' => 'user',
+            'senderName' => $currentUser->name,
+            'senderId' => $currentUser->id,
             'timestamp' => $message->created_at->toISOString(),
-            'isRead' => false,
+            'isReadByUser' => true,
+            'readBy' => [$currentUser->id],
+            'readDetails' => $readDetails,
         ], 201);
     }
 

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Message extends Model
 {
     protected $fillable = [
+        'academic_bond_id',
         'sender_id',
         'recipient_id',
         'subject',
@@ -24,6 +25,11 @@ class Message extends Model
             'is_read' => 'boolean',
             'read_at' => 'datetime',
         ];
+    }
+
+    public function academicBond(): BelongsTo
+    {
+        return $this->belongsTo(AcademicBond::class);
     }
 
     public function sender(): BelongsTo
@@ -42,7 +48,17 @@ class Message extends Model
     }
 
     /**
-     * Scope para mensagens entre dois usuários (conversa)
+     * Scope para mensagens de um vínculo acadêmico (conversa em grupo)
+     */
+    public function scopeForAcademicBond($query, int $academicBondId)
+    {
+        return $query->where('academic_bond_id', $academicBondId);
+    }
+
+    /**
+     * Scope para mensagens entre dois usuários (conversa) - Legacy
+     *
+     * @deprecated Use scopeForAcademicBond para mensagens em grupo
      */
     public function scopeConversationBetween($query, int $userId1, int $userId2)
     {
@@ -78,7 +94,7 @@ class Message extends Model
     }
 
     /**
-     * Marcar mensagem como lida
+     * Marcar mensagem como lida (legacy - mantido para compatibilidade)
      */
     public function markAsRead(): void
     {
@@ -86,5 +102,50 @@ class Message extends Model
             'is_read' => true,
             'read_at' => now(),
         ]);
+    }
+
+    /**
+     * Marcar mensagem como lida por um usuário específico
+     */
+    public function markAsReadBy(int $userId): void
+    {
+        $this->reads()->updateOrCreate(
+            ['user_id' => $userId],
+            ['read_at' => now()]
+        );
+    }
+
+    /**
+     * Verificar se mensagem foi lida por um usuário específico
+     */
+    public function isReadBy(int $userId): bool
+    {
+        return $this->reads()->where('user_id', $userId)->exists();
+    }
+
+    /**
+     * Obter participantes do vínculo acadêmico (orientador, co-orientador, discente)
+     */
+    public function getParticipants(): array
+    {
+        if (! $this->academicBond) {
+            return [];
+        }
+
+        $participants = [];
+
+        if ($this->academicBond->student_id) {
+            $participants[] = $this->academicBond->student_id;
+        }
+
+        if ($this->academicBond->advisor_id) {
+            $participants[] = $this->academicBond->advisor_id;
+        }
+
+        if ($this->academicBond->co_advisor_id) {
+            $participants[] = $this->academicBond->co_advisor_id;
+        }
+
+        return $participants;
     }
 }
