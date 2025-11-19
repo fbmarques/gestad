@@ -12,6 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Drop foreign keys before renaming to avoid constraint name conflicts
+        Schema::table('student_courses', function (Blueprint $table) {
+            $table->dropForeign(['academic_bond_id']);
+            $table->dropForeign(['course_id']);
+        });
+
         // Rename current table to backup
         Schema::rename('student_courses', 'student_courses_backup');
 
