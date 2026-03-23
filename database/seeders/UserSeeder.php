@@ -372,6 +372,7 @@ class UserSeeder extends Seeder
             }
         }
 
+        /*
         // Criar docentes com associação às linhas de pesquisa
         foreach ($docentes as $userData) {
             $roleSlug = $userData['role_slug'];
@@ -404,5 +405,6 @@ class UserSeeder extends Seeder
                 $user->roles()->attach($role->id);
             }
         }
+        */
     }
 }

@@ -14,15 +14,15 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            CourseSeeder::class,
-            ResearchLineSeeder::class, // Movido para ANTES do UserSeeder
+            //CourseSeeder::class,
+            //ResearchLineSeeder::class, // Movido para ANTES do UserSeeder
             UserSeeder::class,
             AgencySeeder::class,
             JournalSeeder::class,
-            EventSeeder::class,
-            AcademicBondSeeder::class,
-            PublicationSeeder::class,
-            EventParticipationSeeder::class,
+            //EventSeeder::class,
+            //AcademicBondSeeder::class,
+            //PublicationSeeder::class,
+            //EventParticipationSeeder::class,
         ]);
     }
 }
