@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RoleSeeder::class,
             //CourseSeeder::class,
-            //ResearchLineSeeder::class, // Movido para ANTES do UserSeeder
+            ResearchLineSeeder::class, // Movido para ANTES do UserSeeder
             UserSeeder::class,
             AgencySeeder::class,
             JournalSeeder::class,

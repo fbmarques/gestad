@@ -20,35 +20,17 @@ class ResearchLineSeeder extends Seeder
 
         $researchLines = [
             [
-                'name' => 'Gestão da Informação e do Conhecimento',
-                'alias' => 'GIC',
+                'name' => 'Arquitetura & Organização do Conhecimento',
+                'alias' => 'AOC',
                 'description' => 'Estudos sobre organização, gestão e uso estratégico da informação e conhecimento em organizações. Inclui sistemas de informação, gestão do conhecimento organizacional, inteligência competitiva e arquitetura da informação.',
                 'coordinator_id' => $docentes->get(0)?->id,
             ],
             [
-                'name' => 'Organização e Representação da Informação',
-                'alias' => 'ORI',
-                'description' => 'Pesquisas em catalogação, classificação, indexação, linguagens documentárias, ontologias, taxonomias e metadados. Foca nos processos de organização e representação do conhecimento para recuperação da informação.',
+                'name' => 'Gestão & Tecnologia da Informação e Comunicação',
+                'alias' => 'GETIC',
+                'description' => 'A linha GETIC aborda questões relacionadas ao gerenciamento estratégico do conhecimento, envolvendo sua recuperação, organização e disseminação. As atividades nessa linha de pesquisa abrangem investigações relacionadas com gestão da informação e do conhecimento, inteligência competitiva, interação homem-máquina, usos e necessidades da informação, processamento de linguagem natural, indexação automática, big data, analytics, linked data, open data, web, web semântica, visualização de dados, metadados eletrônicos, dentre outras. ',
                 'coordinator_id' => $docentes->get(1)?->id,
-            ],
-            [
-                'name' => 'Mediação e Apropriação da Informação',
-                'alias' => 'MAI',
-                'description' => 'Investigações sobre os processos de mediação da informação, competência informacional, letramento informacional, apropriação social da informação e estudos de usuários da informação.',
-                'coordinator_id' => $docentes->get(2)?->id,
-            ],
-            [
-                'name' => 'Estudos Métricos da Informação',
-                'alias' => 'EMI',
-                'description' => 'Aplicação de métodos quantitativos para análise da produção, comunicação e uso da informação científica. Inclui bibliometria, cientometria, webometria e altmetria.',
-                'coordinator_id' => $docentes->get(3)?->id,
-            ],
-            [
-                'name' => 'Tecnologia da Informação e Sociedade',
-                'alias' => 'TIS',
-                'description' => 'Estudos sobre o impacto das tecnologias da informação na sociedade, incluindo inclusão digital, governança eletrônica, preservação digital, repositórios digitais e acesso aberto à informação científica.',
-                'coordinator_id' => $docentes->get(4)?->id,
-            ],
+            ]
         ];
 
         foreach ($researchLines as $line) {
