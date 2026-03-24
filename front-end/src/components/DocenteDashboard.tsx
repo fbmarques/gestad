@@ -17,7 +17,8 @@ import {
   ClipboardList,
   HelpCircle,
   Target,
-  Lightbulb
+  Lightbulb,
+  Bell
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStatsDocente, getUnreadMessageCount } from "@/lib/api";

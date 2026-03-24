@@ -169,8 +169,8 @@ class DashboardController extends Controller
             ];
         }
 
-        // Produções Pendentes de Aprovação (status = Pending)
-        $pendingPublications = Publication::where('status', 'Pending')->count();
+        // Produções Pendentes de Aprovação (program_evaluation = pending)
+        $pendingPublications = Publication::where('program_evaluation', 'pending')->count();
 
         if ($pendingPublications > 0) {
             $alertsData[] = [
@@ -293,14 +293,14 @@ class DashboardController extends Controller
             ->count();
 
         // Publicações dos orientandos (status P, D ou I) - últimos 12 meses
-        $studentIds = AcademicBond::where('advisor_id', $advisorId)->pluck('student_id');
-        $publicationsLast12Months = Publication::whereIn('student_id', $studentIds)
+        $academicBondIds = AcademicBond::where('advisor_id', $advisorId)->pluck('id');
+        $publicationsLast12Months = Publication::whereIn('academic_bond_id', $academicBondIds)
             ->whereIn('status', ['P', 'D', 'I'])
             ->where('created_at', '>=', now()->subYear())
             ->count();
 
         // Publicações - 12 meses anteriores (para calcular tendência)
-        $publicationsPrevious12Months = Publication::whereIn('student_id', $studentIds)
+        $publicationsPrevious12Months = Publication::whereIn('academic_bond_id', $academicBondIds)
             ->whereIn('status', ['P', 'D', 'I'])
             ->where('created_at', '>=', now()->subYears(2))
             ->where('created_at', '<', now()->subYear())
@@ -328,7 +328,7 @@ class DashboardController extends Controller
             });
 
         // Publicações por Qualis dos orientandos
-        $publicationsByQualis = Publication::whereIn('student_id', $studentIds)
+        $publicationsByQualis = Publication::whereIn('academic_bond_id', $academicBondIds)
             ->whereIn('status', ['P', 'D', 'I'])
             ->join('journals', 'publications.journal_id', '=', 'journals.id')
             ->whereNotNull('journals.qualis')
@@ -363,7 +363,7 @@ class DashboardController extends Controller
         ];
 
         // Eventos dos orientandos (últimos 4 anos - 2022 a 2025)
-        $eventsMonthly = EventParticipation::whereIn('student_id', $studentIds)
+        $eventsMonthly = EventParticipation::whereIn('academic_bond_id', $academicBondIds)
             ->select('year', DB::raw('count(*) as events'))
             ->whereIn('year', [2022, 2023, 2024, 2025])
             ->groupBy('year')
@@ -379,7 +379,7 @@ class DashboardController extends Controller
         $totalEventsLast12Months = $eventsMonthly->sum('events');
 
         // Top Revistas das publicações dos orientandos
-        $topJournals = Publication::whereIn('student_id', $studentIds)
+        $topJournals = Publication::whereIn('academic_bond_id', $academicBondIds)
             ->whereIn('status', ['P', 'D', 'I'])
             ->join('journals', 'publications.journal_id', '=', 'journals.id')
             ->select('journals.name', DB::raw('count(publications.id) as publications'))
@@ -441,8 +441,8 @@ class DashboardController extends Controller
         }
 
         // Produções Pendentes de Aprovação dos orientandos
-        $pendingPublications = Publication::whereIn('student_id', $studentIds)
-            ->where('status', 'Pending')
+        $pendingPublications = Publication::whereIn('academic_bond_id', $academicBondIds)
+            ->where('program_evaluation', 'pending')
             ->count();
 
         if ($pendingPublications > 0) {
