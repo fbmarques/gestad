@@ -17,6 +17,12 @@ Route::get('/login', function () {
     return view('app');
 })->name('login');
 
+// Public print route for SPA reports.
+// The actual report data remains protected by the API token.
+Route::get('/relatorios/impressao', function () {
+    return view('app');
+});
+
 // Protected routes with role-based access control
 Route::middleware(['auth:sanctum', 'role:1'])->group(function () {
     Route::get('/administrativo', function () {

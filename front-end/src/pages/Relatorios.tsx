@@ -12,7 +12,6 @@ import {
   CalendarClock,
   Download,
   FileText,
-  GraduationCap,
   Loader2,
   Sparkles,
   Users,
@@ -434,7 +433,7 @@ const Relatorios = () => {
   }, [data, shouldOpenPrintDialog]);
 
   const openReportWindow = (type: DocenteReportType) => {
-    const url = new URL(`${window.location.origin}/relatorios`);
+    const url = new URL(`${window.location.origin}/relatorios/impressao`);
     url.searchParams.set("report", type);
     url.searchParams.set("autoprint", "1");
     window.open(url.toString(), "_blank", "noopener,noreferrer");
