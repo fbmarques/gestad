@@ -19,7 +19,7 @@ class ReportController extends Controller
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
-        $allowedTypes = ['orientandos', 'producoes', 'prazos', 'definicoes'];
+        $allowedTypes = ['orientandos', 'producoes', 'prazos', 'definicoes', 'acessos'];
         if (! in_array($type, $allowedTypes, true)) {
             return response()->json(['error' => 'Tipo de relatório inválido.'], 404);
         }
@@ -43,6 +43,7 @@ class ReportController extends Controller
             'producoes' => $this->buildProducoesReport($bonds),
             'prazos' => $this->buildPrazosReport($bonds),
             'definicoes' => $this->buildDefinicoesReport($bonds),
+            'acessos' => $this->buildAcessosReport($bonds),
         };
 
         return response()->json([
@@ -164,6 +165,22 @@ class ReportController extends Controller
                     'question' => $bond->question_defined ? 'Ok' : '[-]',
                     'objectives' => $bond->objectives_defined ? 'Ok' : '[-]',
                     'methodology' => $bond->methodology_defined ? 'Ok' : '[-]',
+                ];
+            })->values(),
+        ];
+    }
+
+    private function buildAcessosReport(Collection $bonds): array
+    {
+        return [
+            'title' => 'Último Acesso ao Sistema',
+            'subtitle' => 'Consulta do último acesso registrado para cada orientando ativo.',
+            'columns' => ['Discente', 'Modalidade', 'Último Acesso'],
+            'rows' => $bonds->map(function (AcademicBond $bond) {
+                return [
+                    'student_name' => $bond->student?->name ?? 'Sem nome',
+                    'modality' => $this->formatLevel($bond->level),
+                    'last_access_at' => $bond->student?->last_access_at?->format('d/m/Y H:i:s') ?? 'Sem acesso.',
                 ];
             })->values(),
         ];

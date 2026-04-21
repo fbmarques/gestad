@@ -168,6 +168,20 @@ class DiscenteController extends Controller
             return response()->json(['error' => 'Discente não encontrado.'], 404);
         }
 
+        if ($user->isDocente() && ! $user->isAdmin()) {
+            $hasAccess = AcademicBond::query()
+                ->where('student_id', $discente->id)
+                ->where(function ($query) use ($user) {
+                    $query->where('advisor_id', $user->id)
+                        ->orWhere('co_advisor_id', $user->id);
+                })
+                ->exists();
+
+            if (! $hasAccess) {
+                return response()->json(['error' => 'Acesso negado.'], 403);
+            }
+        }
+
         // Get all academic bonds with relationships
         $academicBonds = AcademicBond::where('student_id', $discente->id)
             ->with([

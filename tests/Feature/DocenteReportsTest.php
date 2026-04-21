@@ -132,4 +132,45 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.objectives', 'Ok')
             ->assertJsonPath('rows.0.methodology', '[-]');
     }
+
+    public function test_docente_can_get_last_access_report_with_fallback_for_students_without_access(): void
+    {
+        $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
+
+        $docente = User::factory()->create();
+        $docente->roles()->attach($docenteRole->id);
+
+        $studentWithAccess = User::factory()->create([
+            'last_access_at' => '2026-04-20 14:30:45',
+        ]);
+
+        $studentWithoutAccess = User::factory()->create([
+            'last_access_at' => null,
+        ]);
+
+        AcademicBond::factory()->create([
+            'student_id' => $studentWithAccess->id,
+            'advisor_id' => $docente->id,
+            'status' => 'active',
+            'level' => 'doctorate',
+        ]);
+
+        AcademicBond::factory()->create([
+            'student_id' => $studentWithoutAccess->id,
+            'advisor_id' => $docente->id,
+            'status' => 'active',
+            'level' => 'master',
+        ]);
+
+        $response = $this->actingAs($docente, 'sanctum')
+            ->getJson('/api/reports/docente/acessos?active_role=docente');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('title', 'Último Acesso ao Sistema')
+            ->assertJsonCount(2, 'rows')
+            ->assertJsonPath('rows.0.modality', 'Doutorado')
+            ->assertJsonPath('rows.0.last_access_at', '20/04/2026 14:30:45')
+            ->assertJsonPath('rows.1.modality', 'Mestrado')
+            ->assertJsonPath('rows.1.last_access_at', 'Sem acesso.');
+    }
 }

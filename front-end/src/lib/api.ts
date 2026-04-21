@@ -1101,7 +1101,7 @@ export const getDashboardStatsDocente = async (): Promise<DashboardStatsResponse
   return response.data;
 };
 
-export type DocenteReportType = 'orientandos' | 'producoes' | 'prazos' | 'definicoes';
+export type DocenteReportType = 'orientandos' | 'producoes' | 'prazos' | 'definicoes' | 'acessos';
 
 export interface DocenteReportRow {
   [key: string]: string | number | boolean | null | Array<{ title: string; status: string }>;
