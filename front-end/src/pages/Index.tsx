@@ -98,7 +98,7 @@ const Index = () => {
                 GESTAD
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-                Solução tecnológica para apoio da gestão e acompanhamento de atividades acadêmicas em programas de pós-graduação, proporcionando agilidade e centralização de informações
+                Solução tecnológica para apoio da gestão e acompanhamento de atividades acadêmicas em programas de pós-graduação, proporcionando agilidade e centralização de informações.
               </p>
             </div>
           </div>
