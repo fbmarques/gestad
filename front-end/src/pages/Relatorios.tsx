@@ -247,6 +247,11 @@ const StudentMapDocument = ({ student }: { student: StudentAcademicBondData }) =
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 14px 18px;
         }
+        .map-grid-single {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 14px;
+        }
         .map-field-label {
           margin: 0 0 4px;
           color: #6b7280;
@@ -368,7 +373,7 @@ const StudentMapDocument = ({ student }: { student: StudentAcademicBondData }) =
 
             <div className="map-section">
               <h3>Definições de Pesquisa</h3>
-              <div className="map-grid">
+              <div className="map-grid-single">
                 <div>
                   <p className="map-field-label">Problema</p>
                   <p className="map-field-value">{bond.problem_text || "Ainda não informado"}</p>
