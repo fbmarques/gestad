@@ -28,7 +28,7 @@ class ReportController extends Controller
 
         $bonds = AcademicBond::query()
             ->where('status', 'active')
-            ->with(['student:id,name,email', 'agency:id,name,alias'])
+            ->with(['student:id,name,email,last_access_at', 'agency:id,name,alias'])
             ->when($activeRole === 'docente' || ($user->isDocente() && ! $user->isAdmin()), function ($query) use ($user) {
                 $query->where(function ($bondQuery) use ($user) {
                     $bondQuery->where('advisor_id', $user->id)
