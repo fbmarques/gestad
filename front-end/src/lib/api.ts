@@ -1101,6 +1101,29 @@ export const getDashboardStatsDocente = async (): Promise<DashboardStatsResponse
   return response.data;
 };
 
+export type DocenteReportType = 'orientandos' | 'producoes' | 'prazos' | 'definicoes';
+
+export interface DocenteReportRow {
+  [key: string]: string | number | boolean | null | Array<{ title: string; status: string }>;
+}
+
+export interface DocenteReportResponse {
+  report: DocenteReportType;
+  generated_at: string;
+  title: string;
+  subtitle: string;
+  columns: string[];
+  rows: DocenteReportRow[];
+}
+
+export const getDocenteReport = async (type: DocenteReportType): Promise<DocenteReportResponse> => {
+  const activeRole = localStorage.getItem('gestad-active-role') || '';
+  const response = await api.get<DocenteReportResponse>(`/api/reports/docente/${type}`, {
+    params: { active_role: activeRole }
+  });
+  return response.data;
+};
+
 // Messages types
 export interface MessageDiscente {
   id: string;

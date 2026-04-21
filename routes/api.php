@@ -12,6 +12,7 @@ use App\Http\Controllers\JournalController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicationController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ResearchLineController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\StudentController;
@@ -113,6 +114,9 @@ Route::middleware(['auth:sanctum', 'track.last.access'])->group(function () {
     Route::get('/publications/rejected', [PublicationController::class, 'rejected']);
     Route::patch('/publications/{publication}/approve', [PublicationController::class, 'approve']);
     Route::patch('/publications/{publication}/reject', [PublicationController::class, 'reject']);
+
+    // Reports for admin/docente
+    Route::get('/reports/docente/{type}', [ReportController::class, 'docente']);
 
     // Messages routes (accessible by authenticated users)
     Route::get('/messages/unread-count', [MessageController::class, 'getUnreadCount']);

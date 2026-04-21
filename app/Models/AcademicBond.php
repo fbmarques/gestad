@@ -97,4 +97,14 @@ class AcademicBond extends Model
     {
         return $this->hasMany(StudentCourse::class);
     }
+
+    public function publications(): HasMany
+    {
+        return $this->hasMany(Publication::class);
+    }
+
+    public function eventParticipations(): HasMany
+    {
+        return $this->hasMany(EventParticipation::class);
+    }
 }
