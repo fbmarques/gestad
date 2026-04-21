@@ -6,7 +6,9 @@ use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Middleware\TrackLastAccess;
 
 class AuthController extends Controller
 {
@@ -27,6 +29,16 @@ class AuthController extends Controller
 
         // Create token for the user
         $token = $user->createToken('api-token')->plainTextToken;
+
+        $user->forceFill([
+            'last_access_at' => now(),
+        ])->save();
+
+        Cache::put(
+            TrackLastAccess::getCacheKey($user->id),
+            true,
+            now()->addMinutes(5)
+        );
 
         $user->load('roles');
 

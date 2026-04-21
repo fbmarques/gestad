@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Role;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
@@ -30,6 +33,8 @@ class LoginTest extends TestCase
         ]);
 
         $user->roles()->attach($adminRole->id);
+
+        Cache::flush();
     }
 
     public function test_login_with_valid_credentials(): void
@@ -54,6 +59,50 @@ class LoginTest extends TestCase
             ]);
 
         $this->assertAuthenticated();
+        $this->assertNotNull(User::where('email', 'admin@minhapesquisa.com.br')->value('last_access_at'));
+    }
+
+    public function test_authenticated_api_request_updates_last_access_at(): void
+    {
+        Carbon::setTestNow('2026-04-21 10:00:00');
+
+        $user = User::where('email', 'admin@minhapesquisa.com.br')->first();
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/user/profile')->assertStatus(200);
+
+        $user->refresh();
+
+        $this->assertNotNull($user->last_access_at);
+        $this->assertTrue($user->last_access_at->equalTo(now()));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_authenticated_api_requests_do_not_update_last_access_at_more_than_once_within_cache_window(): void
+    {
+        Carbon::setTestNow('2026-04-21 10:00:00');
+
+        $user = User::where('email', 'admin@minhapesquisa.com.br')->first();
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/user/profile')->assertStatus(200);
+        $firstAccessAt = $user->fresh()->last_access_at;
+
+        Carbon::setTestNow('2026-04-21 10:02:00');
+        $this->getJson('/api/user/profile')->assertStatus(200);
+        $secondAccessAt = $user->fresh()->last_access_at;
+
+        $this->assertTrue($firstAccessAt->equalTo($secondAccessAt));
+
+        Carbon::setTestNow('2026-04-21 10:06:00');
+        $this->getJson('/api/user/profile')->assertStatus(200);
+        $thirdAccessAt = $user->fresh()->last_access_at;
+
+        $this->assertTrue($thirdAccessAt->equalTo(now()));
+        $this->assertFalse($thirdAccessAt->equalTo($secondAccessAt));
+
+        Carbon::setTestNow();
     }
 
     public function test_login_with_invalid_email(): void
