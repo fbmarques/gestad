@@ -186,6 +186,58 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.publication_count', 1);
     }
 
+    public function test_docente_producoes_report_counts_publications_from_other_bonds_of_the_same_student(): void
+    {
+        $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
+
+        $docente = User::factory()->create();
+        $docente->roles()->attach($docenteRole->id);
+
+        $student = User::factory()->create();
+
+        $activeBond = AcademicBond::factory()->create([
+            'student_id' => $student->id,
+            'advisor_id' => $docente->id,
+            'status' => 'active',
+            'level' => 'doctorate',
+        ]);
+
+        $oldBond = AcademicBond::factory()->create([
+            'student_id' => $student->id,
+            'advisor_id' => $docente->id,
+            'status' => 'completed',
+            'level' => 'master',
+        ]);
+
+        $journal = Journal::factory()->create();
+
+        Publication::factory()->create([
+            'academic_bond_id' => $oldBond->id,
+            'journal_id' => $journal->id,
+            'status' => 'S',
+            'approval_date' => null,
+            'publication_date' => null,
+        ]);
+
+        Publication::factory()->create([
+            'academic_bond_id' => $oldBond->id,
+            'journal_id' => $journal->id,
+            'status' => 'A',
+            'approval_date' => '2026-03-10',
+            'publication_date' => null,
+        ]);
+
+        $response = $this->actingAs($docente, 'sanctum')
+            ->getJson('/api/reports/docente/producoes?active_role=docente');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.modality', 'Doutorado')
+            ->assertJsonPath('rows.0.submission_count', 1)
+            ->assertJsonPath('rows.0.approval_count', 1)
+            ->assertJsonPath('rows.0.publication_count', 0);
+    }
+
     public function test_docente_can_get_last_access_report_with_fallback_for_students_without_access(): void
     {
         $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);

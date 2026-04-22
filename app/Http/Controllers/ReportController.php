@@ -76,19 +76,23 @@ class ReportController extends Controller
 
     private function buildProducoesReport(Collection $bonds): array
     {
-        $publicationsByBond = Publication::query()
-            ->whereIn('academic_bond_id', $bonds->pluck('id'))
+        $studentIds = $bonds->pluck('student_id')->filter()->unique()->values();
+
+        $publicationsByStudent = Publication::query()
+            ->join('academic_bonds', 'academic_bonds.id', '=', 'publications.academic_bond_id')
+            ->whereIn('academic_bonds.student_id', $studentIds)
             ->orderBy('submission_date')
+            ->select('publications.*', 'academic_bonds.student_id')
             ->get()
-            ->groupBy('academic_bond_id');
+            ->groupBy('student_id');
 
         return [
             'title' => 'Produção Acadêmica',
             'subtitle' => 'Produções registradas por orientando no sistema.',
             'columns' => ['Orientando', 'Modalidade', 'Submissão', 'Aprovação', 'Publicação'],
-            'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByBond) {
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByStudent) {
                 $counts = $this->countPublicationStages(
-                    $publicationsByBond->get($bond->id, collect())
+                    $publicationsByStudent->get($bond->student_id, collect())
                 );
 
                 return [
