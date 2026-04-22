@@ -477,9 +477,9 @@ const ReportDocument = ({
               <tr>
                 <th>Orientando</th>
                 <th>Modalidade</th>
-                <th>Submissão</th>
-                <th>Aprovação</th>
-                <th>Publicação</th>
+                <th className="report-table-center">Submissão</th>
+                <th className="report-table-center">Aprovação</th>
+                <th className="report-table-center">Publicação</th>
               </tr>
             </thead>
             <tbody>
@@ -487,9 +487,9 @@ const ReportDocument = ({
                 <tr key={index}>
                   <td>{row.student_name as string}</td>
                   <td>{row.modality as string}</td>
-                  <td>{row.submission_count as number}</td>
-                  <td>{row.approval_count as number}</td>
-                  <td>{row.publication_count as number}</td>
+                  <td className="report-table-center">{row.submission_count as number}</td>
+                  <td className="report-table-center">{row.approval_count as number}</td>
+                  <td className="report-table-center">{row.publication_count as number}</td>
                 </tr>
               ))}
             </tbody>
@@ -652,6 +652,9 @@ const ReportDocument = ({
           background: #eef2ff;
           color: #1f2937;
           font-weight: 700;
+        }
+        .report-table-center {
+          text-align: center !important;
         }
         .report-table tbody tr:nth-child(even) {
           background: #f9fafb;
