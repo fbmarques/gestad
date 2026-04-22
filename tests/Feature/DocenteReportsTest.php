@@ -181,15 +181,9 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('title', 'Produção Acadêmica')
             ->assertJsonPath('rows.0.student_name', $student->name)
             ->assertJsonPath('rows.0.modality', 'Doutorado')
-            ->assertJsonPath('rows.0.productions.0.title', '2 em submissão')
-            ->assertJsonPath('rows.0.productions.0.status', 'Submissão')
-            ->assertJsonPath('rows.0.productions.0.count', 2)
-            ->assertJsonPath('rows.0.productions.1.title', '2 em aprovação')
-            ->assertJsonPath('rows.0.productions.1.status', 'Aprovação')
-            ->assertJsonPath('rows.0.productions.1.count', 2)
-            ->assertJsonPath('rows.0.productions.2.title', '1 publicado')
-            ->assertJsonPath('rows.0.productions.2.status', 'Publicado')
-            ->assertJsonPath('rows.0.productions.2.count', 1);
+            ->assertJsonPath('rows.0.submission_count', 2)
+            ->assertJsonPath('rows.0.approval_count', 2)
+            ->assertJsonPath('rows.0.publication_count', 1);
     }
 
     public function test_docente_can_get_last_access_report_with_fallback_for_students_without_access(): void

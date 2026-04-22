@@ -23,7 +23,6 @@ import {
 import {
   getDiscentes,
   getDocenteReport,
-  type DocenteProductionItem,
   getStudentAcademicBondDetails,
   type Discente,
   type DocenteReportResponse,
@@ -132,60 +131,6 @@ const formatGeneratedAt = (value?: string) => {
 
 const buildPrintTitle = (reportType: DocenteReportType) => {
   return `GESTAD - ${reportLabels[reportType]}`;
-};
-
-const resolveProductionStage = (production: DocenteProductionItem): "submission" | "approval" | "publication" => {
-  if (production.stage === "submission" || production.stage === "approval" || production.stage === "publication") {
-    return production.stage;
-  }
-
-  const normalizedStatus = production.status.trim().toLowerCase();
-
-  if (normalizedStatus.includes("public")) {
-    return "publication";
-  }
-
-  if (normalizedStatus.includes("aprova")) {
-    return "approval";
-  }
-
-  return "submission";
-};
-
-const buildProductionStageSummaries = (productions: DocenteProductionItem[]): DocenteProductionItem[] => {
-  const stageLabels = {
-    submission: "Submissão",
-    approval: "Aprovação",
-    publication: "Publicado",
-  } as const;
-
-  const counts = {
-    submission: 0,
-    approval: 0,
-    publication: 0,
-  };
-
-  productions.forEach((production) => {
-    const stage = resolveProductionStage(production);
-    const count = typeof production.count === "number" && production.count > 0 ? production.count : 1;
-    counts[stage] += count;
-  });
-
-  return (Object.keys(stageLabels) as Array<keyof typeof stageLabels>)
-    .filter((stage) => counts[stage] > 0)
-    .map((stage) => ({
-      title:
-        stage === "submission"
-          ? `${counts[stage]} em submissão`
-          : stage === "approval"
-            ? `${counts[stage]} em aprovação`
-            : counts[stage] === 1
-              ? "1 publicado"
-              : `${counts[stage]} publicados`,
-      status: stageLabels[stage],
-      stage,
-      count: counts[stage],
-    }));
 };
 
 const StudentMapDocument = ({ student }: { student: StudentAcademicBondData }) => {
@@ -532,36 +477,21 @@ const ReportDocument = ({
               <tr>
                 <th>Orientando</th>
                 <th>Modalidade</th>
-                <th>Produções</th>
+                <th>Submissão</th>
+                <th>Aprovação</th>
+                <th>Publicação</th>
               </tr>
             </thead>
             <tbody>
-              {report.rows.map((row, index) => {
-                const productions = buildProductionStageSummaries(
-                  (row.productions as DocenteProductionItem[]) || []
-                );
-
-                return (
-                  <tr key={index}>
-                    <td>{row.student_name as string}</td>
-                    <td>{row.modality as string}</td>
-                    <td>
-                      {productions.length > 0 ? (
-                        <ul className="report-list">
-                          {productions.map((production, productionIndex) => (
-                            <li key={`${index}-${productionIndex}`}>
-                              <strong>{production.title}</strong>
-                              <span>{production.status}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        "[-]"
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {report.rows.map((row, index) => (
+                <tr key={index}>
+                  <td>{row.student_name as string}</td>
+                  <td>{row.modality as string}</td>
+                  <td>{row.submission_count as number}</td>
+                  <td>{row.approval_count as number}</td>
+                  <td>{row.publication_count as number}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         );

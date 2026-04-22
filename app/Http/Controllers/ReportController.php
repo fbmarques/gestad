@@ -85,22 +85,24 @@ class ReportController extends Controller
         return [
             'title' => 'Produção Acadêmica',
             'subtitle' => 'Produções registradas por orientando no sistema.',
-            'columns' => ['Orientando', 'Modalidade', 'Produções'],
+            'columns' => ['Orientando', 'Modalidade', 'Submissão', 'Aprovação', 'Publicação'],
             'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByBond) {
-                $productions = $this->summarizePublicationStages(
+                $counts = $this->countPublicationStages(
                     $publicationsByBond->get($bond->id, collect())
                 );
 
                 return [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'modality' => $this->formatLevel($bond->level),
-                    'productions' => $productions,
+                    'submission_count' => $counts['submission'],
+                    'approval_count' => $counts['approval'],
+                    'publication_count' => $counts['publication'],
                 ];
             })->values(),
         ];
     }
 
-    private function summarizePublicationStages(Collection $publications): Collection
+    private function countPublicationStages(Collection $publications): array
     {
         $counts = [
             'submission' => 0,
@@ -112,24 +114,7 @@ class ReportController extends Controller
             $counts[$this->resolvePublicationStage($publication)]++;
         }
 
-        return collect([
-            'submission' => 'Submissão',
-            'approval' => 'Aprovação',
-            'publication' => 'Publicado',
-        ])->map(function (string $label, string $stage) use ($counts) {
-            $count = $counts[$stage];
-
-            if ($count === 0) {
-                return null;
-            }
-
-            return [
-                'title' => $this->formatPublicationStageSummary($stage, $count),
-                'status' => $label,
-                'stage' => $stage,
-                'count' => $count,
-            ];
-        })->filter()->values();
+        return $counts;
     }
 
     private function resolvePublicationStage(Publication $publication): string
@@ -144,17 +129,6 @@ class ReportController extends Controller
 
         return 'submission';
     }
-
-    private function formatPublicationStageSummary(string $stage, int $count): string
-    {
-        return match ($stage) {
-            'submission' => "{$count} em submissão",
-            'approval' => "{$count} em aprovação",
-            'publication' => $count === 1 ? '1 publicado' : "{$count} publicados",
-            default => (string) $count,
-        };
-    }
-
     private function buildPrazosReport(Collection $bonds): array
     {
         $bondIds = $bonds->pluck('id');
