@@ -118,6 +118,9 @@ class DocenteReportsTest extends TestCase
 
         $prazosResponse->assertStatus(200)
             ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.start_date', '15/01/2025')
+            ->assertJsonPath('rows.0.end_date', '15/01/2027')
+            ->assertJsonPath('rows.0.remaining_days', 268)
             ->assertJsonPath('rows.0.credits', 'Ok')
             ->assertJsonPath('rows.0.events', 'Ok')
             ->assertJsonPath('rows.0.articles', 'Ok');

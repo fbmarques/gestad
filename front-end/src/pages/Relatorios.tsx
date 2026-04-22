@@ -503,6 +503,7 @@ const ReportDocument = ({
                 <th>Orientando</th>
                 <th>Entrada</th>
                 <th>Saída Prevista</th>
+                <th>Dias</th>
                 <th>Créditos</th>
                 <th>Eventos</th>
                 <th>Artigos</th>
@@ -514,6 +515,7 @@ const ReportDocument = ({
                   <td>{row.student_name as string}</td>
                   <td>{row.start_date as string}</td>
                   <td>{row.end_date as string}</td>
+                  <td>{row.remaining_days as string | number}</td>
                   <td>{row.credits as string}</td>
                   <td>{row.events as string}</td>
                   <td>{row.articles as string}</td>

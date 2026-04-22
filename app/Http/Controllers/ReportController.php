@@ -136,6 +136,7 @@ class ReportController extends Controller
     private function buildPrazosReport(Collection $bonds): array
     {
         $bondIds = $bonds->pluck('id');
+        $today = now()->startOfDay();
 
         $creditsByBond = StudentCourse::query()
             ->join('courses', 'student_courses.course_id', '=', 'courses.id')
@@ -159,19 +160,23 @@ class ReportController extends Controller
         return [
             'title' => 'Prazos e Defesas',
             'subtitle' => 'Acompanhamento de saída prevista e cumprimento de requisitos acadêmicos.',
-            'columns' => ['Orientando', 'Entrada', 'Saída Prevista', 'Créditos', 'Eventos', 'Artigos'],
-            'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $eventsByBond, $publicationsByBond) {
+            'columns' => ['Orientando', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'],
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $eventsByBond, $publicationsByBond, $today) {
                 $requiredCredits = $bond->level === 'doctorate' ? 22 : 18;
                 $hasEnoughCredits = ((int) ($creditsByBond[$bond->id] ?? 0)) >= $requiredCredits;
                 $hasEvents = ((int) ($eventsByBond[$bond->id] ?? 0)) > 0;
 
                 $requiredArticles = 2;
                 $hasEnoughArticles = ((int) ($publicationsByBond[$bond->id] ?? 0)) >= $requiredArticles;
+                $remainingDays = $bond->end_date
+                    ? $today->diffInDays($bond->end_date->copy()->startOfDay(), false)
+                    : '-';
 
                 return [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'start_date' => $bond->start_date?->format('d/m/Y') ?? '-',
                     'end_date' => $bond->end_date?->format('d/m/Y') ?? '-',
+                    'remaining_days' => $remainingDays,
                     'credits' => $hasEnoughCredits ? 'Ok' : '[-]',
                     'events' => $hasEvents ? 'Ok' : '[-]',
                     'articles' => $hasEnoughArticles ? 'Ok' : '[-]',
