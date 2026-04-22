@@ -501,24 +501,24 @@ const ReportDocument = ({
             <thead>
               <tr>
                 <th>Orientando</th>
-                <th>Entrada</th>
-                <th>Saída Prevista</th>
-                <th>Dias</th>
-                <th>Créditos</th>
-                <th>Eventos</th>
-                <th>Artigos</th>
+                <th className="report-table-center">Entrada</th>
+                <th className="report-table-center">Saída Prevista</th>
+                <th className="report-table-center">Dias</th>
+                <th className="report-table-center">Créditos</th>
+                <th className="report-table-center">Eventos</th>
+                <th className="report-table-center">Artigos</th>
               </tr>
             </thead>
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
                   <td>{row.student_name as string}</td>
-                  <td>{row.start_date as string}</td>
-                  <td>{row.end_date as string}</td>
-                  <td>{row.remaining_days as string | number}</td>
-                  <td>{row.credits as string}</td>
-                  <td>{row.events as string}</td>
-                  <td>{row.articles as string}</td>
+                  <td className="report-table-center">{row.start_date as string}</td>
+                  <td className="report-table-center">{row.end_date as string}</td>
+                  <td className="report-table-center">{row.remaining_days as string | number}</td>
+                  <td className="report-table-center">{row.credits as string}</td>
+                  <td className="report-table-center">{row.events as string}</td>
+                  <td className="report-table-center">{row.articles as string}</td>
                 </tr>
               ))}
             </tbody>
