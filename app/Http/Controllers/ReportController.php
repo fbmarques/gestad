@@ -87,14 +87,9 @@ class ReportController extends Controller
             'subtitle' => 'Produções registradas por orientando no sistema.',
             'columns' => ['Orientando', 'Modalidade', 'Produções'],
             'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByBond) {
-                $productions = $publicationsByBond->get($bond->id, collect())
-                    ->map(function (Publication $publication) {
-                        return [
-                            'title' => $publication->title,
-                            'status' => $publication->status_display,
-                        ];
-                    })
-                    ->values();
+                $productions = $this->summarizePublicationStages(
+                    $publicationsByBond->get($bond->id, collect())
+                );
 
                 return [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
@@ -103,6 +98,61 @@ class ReportController extends Controller
                 ];
             })->values(),
         ];
+    }
+
+    private function summarizePublicationStages(Collection $publications): Collection
+    {
+        $counts = [
+            'submission' => 0,
+            'approval' => 0,
+            'publication' => 0,
+        ];
+
+        foreach ($publications as $publication) {
+            $counts[$this->resolvePublicationStage($publication)]++;
+        }
+
+        return collect([
+            'submission' => 'Submissão',
+            'approval' => 'Aprovação',
+            'publication' => 'Publicado',
+        ])->map(function (string $label, string $stage) use ($counts) {
+            $count = $counts[$stage];
+
+            if ($count === 0) {
+                return null;
+            }
+
+            return [
+                'title' => $this->formatPublicationStageSummary($stage, $count),
+                'status' => $label,
+                'stage' => $stage,
+                'count' => $count,
+            ];
+        })->filter()->values();
+    }
+
+    private function resolvePublicationStage(Publication $publication): string
+    {
+        if ($publication->publication_date || $publication->status === 'P') {
+            return 'publication';
+        }
+
+        if ($publication->approval_date || $publication->status === 'A') {
+            return 'approval';
+        }
+
+        return 'submission';
+    }
+
+    private function formatPublicationStageSummary(string $stage, int $count): string
+    {
+        return match ($stage) {
+            'submission' => "{$count} em submissão",
+            'approval' => "{$count} em aprovação",
+            'publication' => $count === 1 ? '1 publicado' : "{$count} publicados",
+            default => (string) $count,
+        };
     }
 
     private function buildPrazosReport(Collection $bonds): array

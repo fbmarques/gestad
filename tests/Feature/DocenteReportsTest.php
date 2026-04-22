@@ -133,6 +133,65 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.methodology', '[-]');
     }
 
+    public function test_docente_can_get_producoes_report_grouped_by_publication_stage(): void
+    {
+        $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
+
+        $docente = User::factory()->create();
+        $docente->roles()->attach($docenteRole->id);
+
+        $student = User::factory()->create();
+        $bond = AcademicBond::factory()->create([
+            'student_id' => $student->id,
+            'advisor_id' => $docente->id,
+            'status' => 'active',
+            'level' => 'doctorate',
+        ]);
+
+        $journal = Journal::factory()->create();
+
+        Publication::factory()->count(2)->create([
+            'academic_bond_id' => $bond->id,
+            'journal_id' => $journal->id,
+            'status' => 'S',
+            'approval_date' => null,
+            'publication_date' => null,
+        ]);
+
+        Publication::factory()->count(2)->create([
+            'academic_bond_id' => $bond->id,
+            'journal_id' => $journal->id,
+            'status' => 'A',
+            'approval_date' => '2026-03-10',
+            'publication_date' => null,
+        ]);
+
+        Publication::factory()->create([
+            'academic_bond_id' => $bond->id,
+            'journal_id' => $journal->id,
+            'status' => 'P',
+            'approval_date' => '2026-02-10',
+            'publication_date' => '2026-04-10',
+        ]);
+
+        $response = $this->actingAs($docente, 'sanctum')
+            ->getJson('/api/reports/docente/producoes?active_role=docente');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('title', 'Produção Acadêmica')
+            ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.modality', 'Doutorado')
+            ->assertJsonPath('rows.0.productions.0.title', '2 em submissão')
+            ->assertJsonPath('rows.0.productions.0.status', 'Submissão')
+            ->assertJsonPath('rows.0.productions.0.count', 2)
+            ->assertJsonPath('rows.0.productions.1.title', '2 em aprovação')
+            ->assertJsonPath('rows.0.productions.1.status', 'Aprovação')
+            ->assertJsonPath('rows.0.productions.1.count', 2)
+            ->assertJsonPath('rows.0.productions.2.title', '1 publicado')
+            ->assertJsonPath('rows.0.productions.2.status', 'Publicado')
+            ->assertJsonPath('rows.0.productions.2.count', 1);
+    }
+
     public function test_docente_can_get_last_access_report_with_fallback_for_students_without_access(): void
     {
         $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
