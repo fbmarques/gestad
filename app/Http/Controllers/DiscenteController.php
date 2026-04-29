@@ -249,7 +249,7 @@ class DiscenteController extends Controller
                         ->map(function ($participation) {
                             return [
                                 'id' => $participation->id,
-                                'event' => $participation->event ? $participation->event->nome : $participation->name,
+                                'event' => $this->formatEventName($participation),
                                 'title' => $participation->title,
                                 'location' => $participation->location,
                                 'year' => $participation->year,
@@ -535,6 +535,19 @@ class DiscenteController extends Controller
             'status' => 'Submissão',
             'date' => $publication->submission_date?->format('d/m/Y') ?? '-',
         ];
+    }
+
+    private function formatEventName($participation): string
+    {
+        if (! $participation->event) {
+            return $participation->name;
+        }
+
+        if (! $participation->event->alias) {
+            return $participation->event->nome;
+        }
+
+        return "{$participation->event->nome}({$participation->event->alias})";
     }
 
     public function updateBasicInfo(UpdateUserBasicInfoRequest $request): JsonResponse

@@ -124,7 +124,10 @@ class DiscenteTest extends TestCase
             'status' => 'A',
         ]);
 
-        $event = Event::factory()->create(['nome' => 'Congresso Nacional de Pesquisa']);
+        $event = Event::factory()->create([
+            'nome' => 'Congresso Nacional de Pesquisa',
+            'alias' => 'CNP',
+        ]);
 
         EventParticipation::create([
             'academic_bond_id' => $bond->id,
@@ -145,7 +148,7 @@ class DiscenteTest extends TestCase
             ->assertJsonPath('academic_bonds.0.publications.0.journal', 'Revista Brasileira de Pesquisa')
             ->assertJsonPath('academic_bonds.0.publications.0.status', 'Aprovação')
             ->assertJsonPath('academic_bonds.0.publications.0.date', '15/02/2026')
-            ->assertJsonPath('academic_bonds.0.event_participations.0.event', 'Congresso Nacional de Pesquisa')
+            ->assertJsonPath('academic_bonds.0.event_participations.0.event', 'Congresso Nacional de Pesquisa(CNP)')
             ->assertJsonPath('academic_bonds.0.event_participations.0.title', 'Trabalho apresentado no evento')
             ->assertJsonPath('academic_bonds.0.event_participations.0.location', 'Belo Horizonte')
             ->assertJsonPath('academic_bonds.0.event_participations.0.year', 2026)
