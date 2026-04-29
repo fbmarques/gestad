@@ -19,7 +19,7 @@ class ReportController extends Controller
             return response()->json(['error' => 'Acesso negado.'], 403);
         }
 
-        $allowedTypes = ['orientandos', 'producoes', 'prazos', 'definicoes', 'acessos'];
+        $allowedTypes = ['orientandos', 'producoes', 'prazos', 'definicoes', 'acessos', 'creditos'];
         if (! in_array($type, $allowedTypes, true)) {
             return response()->json(['error' => 'Tipo de relatório inválido.'], 404);
         }
@@ -55,6 +55,7 @@ class ReportController extends Controller
             'prazos' => $this->buildPrazosReport($bonds, $isAdminView),
             'definicoes' => $this->buildDefinicoesReport($bonds, $isAdminView),
             'acessos' => $this->buildAcessosReport($bonds, $isAdminView),
+            'creditos' => $this->buildCreditosReport($bonds, $isAdminView),
         };
 
         return response()->json([
@@ -163,12 +164,7 @@ class ReportController extends Controller
         $bondIds = $bonds->pluck('id');
         $today = now()->startOfDay();
 
-        $creditsByBond = StudentCourse::query()
-            ->join('courses', 'student_courses.course_id', '=', 'courses.id')
-            ->whereIn('student_courses.academic_bond_id', $bondIds)
-            ->groupBy('student_courses.academic_bond_id')
-            ->selectRaw('student_courses.academic_bond_id, COALESCE(SUM(courses.credits), 0) as total_credits')
-            ->pluck('total_credits', 'student_courses.academic_bond_id');
+        $creditsByBond = $this->getCreditsByBond($bonds);
 
         $eventsByBond = EventParticipation::query()
             ->whereIn('academic_bond_id', $bondIds)
@@ -192,7 +188,7 @@ class ReportController extends Controller
             'subtitle' => 'Acompanhamento de saída prevista e cumprimento de requisitos acadêmicos.',
             'columns' => $columns,
             'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $eventsByBond, $publicationsByBond, $today, $includeAdvisor) {
-                $requiredCredits = $bond->level === 'doctorate' ? 22 : 18;
+                $requiredCredits = $this->requiredCreditsForLevel($bond->level);
                 $hasEnoughCredits = ((int) ($creditsByBond[$bond->id] ?? 0)) >= $requiredCredits;
                 $hasEvents = ((int) ($eventsByBond[$bond->id] ?? 0)) > 0;
 
@@ -267,6 +263,32 @@ class ReportController extends Controller
         ];
     }
 
+    private function buildCreditosReport(Collection $bonds, bool $includeAdvisor): array
+    {
+        $creditsByBond = $this->getCreditsByBond($bonds);
+        $columns = ['Orientando', 'Modalidade', 'Créditos', 'Créditos Cursados'];
+
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
+        return [
+            'title' => 'Créditos já cursados',
+            'subtitle' => 'Compara a exigência de créditos por modalidade com os créditos informados pelo orientando.',
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $includeAdvisor) {
+                $row = [
+                    'student_name' => $bond->student?->name ?? 'Sem nome',
+                    'modality' => $this->formatLevel($bond->level),
+                    'required_credits' => $this->requiredCreditsForLevel($bond->level),
+                    'completed_credits' => (int) ($creditsByBond[$bond->id] ?? 0),
+                ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
+            })->values(),
+        ];
+    }
+
     private function withAdvisorColumn(array $row, AcademicBond $bond, bool $includeAdvisor): array
     {
         if (! $includeAdvisor) {
@@ -274,6 +296,21 @@ class ReportController extends Controller
         }
 
         return ['advisor_name' => $bond->advisor?->name ?? 'Sem orientador'] + $row;
+    }
+
+    private function getCreditsByBond(Collection $bonds): Collection
+    {
+        return StudentCourse::query()
+            ->join('courses', 'student_courses.course_id', '=', 'courses.id')
+            ->whereIn('student_courses.academic_bond_id', $bonds->pluck('id'))
+            ->groupBy('student_courses.academic_bond_id')
+            ->selectRaw('student_courses.academic_bond_id, COALESCE(SUM(courses.credits), 0) as total_credits')
+            ->pluck('total_credits', 'student_courses.academic_bond_id');
+    }
+
+    private function requiredCreditsForLevel(string $level): int
+    {
+        return $level === 'doctorate' ? 22 : 18;
     }
 
     private function formatLevel(string $level): string

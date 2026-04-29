@@ -13,6 +13,7 @@ import {
   CalendarClock,
   Download,
   FileText,
+  GraduationCap,
   Loader2,
   Sparkles,
   Users,
@@ -75,6 +76,13 @@ const reportCards: ReportCard[] = [
       "Lista o discente, a modalidade e a data/hora do último acesso registrado.",
     icon: Clock3,
   },
+  {
+    id: "creditos",
+    title: "Créditos já cursados",
+    description:
+      "Compara a exigência de créditos por modalidade com os créditos informados pelo orientando.",
+    icon: GraduationCap,
+  },
 ];
 
 const translateStatus = (status: string | null | undefined): string => {
@@ -118,6 +126,7 @@ const reportLabels: Record<DocenteReportType, string> = {
   prazos: "Prazos e Defesas",
   definicoes: "Definições de Pesquisa",
   acessos: "Último Acesso ao Sistema",
+  creditos: "Créditos já cursados",
 };
 
 const formatGeneratedAt = (value?: string) => {
@@ -583,6 +592,31 @@ const ReportDocument = ({
                   <td>{row.student_name as string}</td>
                   <td>{row.modality as string}</td>
                   <td>{row.last_access_at as string}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      case "creditos":
+        return (
+          <table className="report-table">
+            <thead>
+              <tr>
+                {advisorHeader}
+                <th>Orientando</th>
+                <th>Modalidade</th>
+                <th className="report-table-center">Créditos</th>
+                <th className="report-table-center">Créditos Cursados</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.rows.map((row, index) => (
+                <tr key={index}>
+                  {advisorCell(row)}
+                  <td>{row.student_name as string}</td>
+                  <td>{row.modality as string}</td>
+                  <td className="report-table-center">{row.required_credits as number}</td>
+                  <td className="report-table-center">{row.completed_credits as number}</td>
                 </tr>
               ))}
             </tbody>

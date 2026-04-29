@@ -111,13 +111,24 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.2.advisor_name', 'Bruno Orientador')
             ->assertJsonPath('rows.2.student_name', 'Ana Discente');
 
-        foreach (['producoes', 'prazos', 'definicoes', 'acessos'] as $reportType) {
+        foreach (['producoes', 'prazos', 'definicoes', 'acessos', 'creditos'] as $reportType) {
             $this->actingAs($admin, 'sanctum')
                 ->getJson("/api/reports/docente/{$reportType}?active_role=admin")
                 ->assertStatus(200)
                 ->assertJsonPath('columns.0', 'Orientador')
                 ->assertJsonPath('rows.0.advisor_name', 'Alice Orientadora');
         }
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/reports/docente/creditos?active_role=admin')
+            ->assertStatus(200)
+            ->assertJsonPath('columns.1', 'Orientando')
+            ->assertJsonPath('columns.2', 'Modalidade')
+            ->assertJsonPath('columns.3', 'Créditos')
+            ->assertJsonPath('columns.4', 'Créditos Cursados')
+            ->assertJsonPath('rows.0.modality', 'Doutorado')
+            ->assertJsonPath('rows.0.required_credits', 22)
+            ->assertJsonPath('rows.0.completed_credits', 0);
     }
 
     public function test_docente_can_get_prazos_and_definicoes_reports_with_computed_flags(): void
@@ -199,6 +210,20 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.question', '[-]')
             ->assertJsonPath('rows.0.objectives', 'Ok')
             ->assertJsonPath('rows.0.methodology', '[-]');
+
+        $creditosResponse = $this->actingAs($docente, 'sanctum')
+            ->getJson('/api/reports/docente/creditos?active_role=docente');
+
+        $creditosResponse->assertStatus(200)
+            ->assertJsonPath('title', 'Créditos já cursados')
+            ->assertJsonPath('columns.0', 'Orientando')
+            ->assertJsonPath('columns.1', 'Modalidade')
+            ->assertJsonPath('columns.2', 'Créditos')
+            ->assertJsonPath('columns.3', 'Créditos Cursados')
+            ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.modality', 'Mestrado')
+            ->assertJsonPath('rows.0.required_credits', 18)
+            ->assertJsonPath('rows.0.completed_credits', 18);
     }
 
     public function test_docente_can_get_producoes_report_grouped_by_publication_stage(): void
