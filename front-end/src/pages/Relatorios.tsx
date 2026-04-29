@@ -284,6 +284,31 @@ const StudentMapDocument = ({ student }: { student: StudentAcademicBondData }) =
           margin: 0 0 14px;
           font-size: 17px;
         }
+        .map-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+        .map-table th,
+        .map-table td {
+          border: 1px solid #d1d5db;
+          padding: 10px;
+          text-align: left;
+          vertical-align: top;
+        }
+        .map-table th {
+          background: #f3f4f6;
+          color: #374151;
+          font-weight: 700;
+        }
+        .map-table-center {
+          text-align: center !important;
+        }
+        .map-empty {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+        }
         .report-footer {
           border-top: 2px solid #e5e7eb;
           margin-top: 24px;
@@ -430,6 +455,64 @@ const StudentMapDocument = ({ student }: { student: StudentAcademicBondData }) =
                   <p className="map-field-value">{bond.work_completed ? "Sim" : "Não entregue"}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="map-section">
+              <h3>Produções em Periódicos</h3>
+              {bond.publications.length > 0 ? (
+                <table className="map-table">
+                  <thead>
+                    <tr>
+                      <th>Título</th>
+                      <th>Periódico</th>
+                      <th>Status</th>
+                      <th className="map-table-center">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bond.publications.map((publication) => (
+                      <tr key={publication.id}>
+                        <td>{publication.title}</td>
+                        <td>{publication.journal}</td>
+                        <td>{publication.status}</td>
+                        <td className="map-table-center">{publication.date}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="map-empty">Nenhuma produção em periódico registrada.</p>
+              )}
+            </div>
+
+            <div className="map-section">
+              <h3>Participação em Eventos</h3>
+              {bond.event_participations.length > 0 ? (
+                <table className="map-table">
+                  <thead>
+                    <tr>
+                      <th>Evento</th>
+                      <th>Título do Trabalho</th>
+                      <th>Local</th>
+                      <th className="map-table-center">Ano</th>
+                      <th>Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bond.event_participations.map((participation) => (
+                      <tr key={participation.id}>
+                        <td>{participation.event}</td>
+                        <td>{participation.title}</td>
+                        <td>{participation.location}</td>
+                        <td className="map-table-center">{participation.year}</td>
+                        <td>{participation.type}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="map-empty">Nenhuma participação em evento registrada.</p>
+              )}
             </div>
           </section>
         ))}

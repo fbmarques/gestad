@@ -189,6 +189,8 @@ class DiscenteController extends Controller
                 'coAdvisor:id,name',
                 'agency:id,name,alias',
                 'researchLine:id,name,alias',
+                'publications.journal:id,name',
+                'eventParticipations.event:id,nome,alias',
             ])
             ->orderBy('level')
             ->orderBy('created_at', 'desc')
@@ -228,6 +230,33 @@ class DiscenteController extends Controller
                     'defense_date' => $bond->defense_date?->format('d/m/Y'),
                     'defense_completion_date' => $bond->defense_completion_date?->format('d/m/Y'),
                     'work_completed' => $bond->work_completed,
+                    'publications' => $bond->publications
+                        ->sortByDesc('created_at')
+                        ->map(function ($publication) {
+                            $publicationStage = $this->formatPublicationStage($publication);
+
+                            return [
+                                'id' => $publication->id,
+                                'title' => $publication->title,
+                                'journal' => $publication->journal ? $publication->journal->name : 'Sem periódico',
+                                'status' => $publicationStage['status'],
+                                'date' => $publicationStage['date'],
+                            ];
+                        })
+                        ->values(),
+                    'event_participations' => $bond->eventParticipations
+                        ->sortByDesc('year')
+                        ->map(function ($participation) {
+                            return [
+                                'id' => $participation->id,
+                                'event' => $participation->event ? $participation->event->nome : $participation->name,
+                                'title' => $participation->title,
+                                'location' => $participation->location,
+                                'year' => $participation->year,
+                                'type' => $participation->type,
+                            ];
+                        })
+                        ->values(),
                 ];
             });
 
@@ -484,6 +513,28 @@ class DiscenteController extends Controller
         $discente->update(['password' => '12345678']);
 
         return response()->json(['message' => 'Senha resetada com sucesso para 12345678.']);
+    }
+
+    private function formatPublicationStage($publication): array
+    {
+        if ($publication->publication_date || $publication->status === 'P') {
+            return [
+                'status' => 'Publicação',
+                'date' => $publication->publication_date?->format('d/m/Y') ?? '-',
+            ];
+        }
+
+        if ($publication->approval_date || $publication->status === 'A') {
+            return [
+                'status' => 'Aprovação',
+                'date' => $publication->approval_date?->format('d/m/Y') ?? '-',
+            ];
+        }
+
+        return [
+            'status' => 'Submissão',
+            'date' => $publication->submission_date?->format('d/m/Y') ?? '-',
+        ];
     }
 
     public function updateBasicInfo(UpdateUserBasicInfoRequest $request): JsonResponse

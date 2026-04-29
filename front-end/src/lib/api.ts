@@ -448,6 +448,23 @@ export interface DocenteDropdown {
 }
 
 // Academic Bond Details interface
+export interface AcademicBondPublication {
+  id: number;
+  title: string;
+  journal: string;
+  status: 'Submissão' | 'Aprovação' | 'Publicação';
+  date: string;
+}
+
+export interface AcademicBondEventParticipation {
+  id: number;
+  event: string;
+  title: string;
+  location: string;
+  year: number;
+  type: string;
+}
+
 export interface AcademicBondDetails {
   id: number;
   level: string;
@@ -475,6 +492,8 @@ export interface AcademicBondDetails {
   defense_date: string | null;
   defense_completion_date: string | null;
   work_completed: boolean;
+  publications: AcademicBondPublication[];
+  event_participations: AcademicBondEventParticipation[];
 }
 
 export interface StudentAcademicBondData {

@@ -4,6 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\AcademicBond;
 use App\Models\Agency;
+use App\Models\Event;
+use App\Models\EventParticipation;
+use App\Models\Journal;
+use App\Models\Publication;
 use App\Models\ResearchLine;
 use App\Models\Role;
 use App\Models\User;
@@ -88,6 +92,64 @@ class DiscenteTest extends TestCase
 
         $response = $this->getJson('/api/discentes');
         $response->assertStatus(200);
+    }
+
+    public function test_academic_map_includes_publications_and_event_participations(): void
+    {
+        $admin = User::factory()->create();
+        $admin->roles()->attach(1);
+
+        $docente = User::factory()->create();
+        $docente->roles()->attach(2);
+
+        $discente = User::factory()->create();
+        $discente->roles()->attach(3);
+
+        $bond = AcademicBond::factory()->create([
+            'student_id' => $discente->id,
+            'advisor_id' => $docente->id,
+            'level' => 'master',
+            'status' => 'active',
+        ]);
+
+        $journal = Journal::factory()->create(['name' => 'Revista Brasileira de Pesquisa']);
+
+        Publication::factory()->create([
+            'academic_bond_id' => $bond->id,
+            'journal_id' => $journal->id,
+            'title' => 'Produção em periódico do mapa',
+            'submission_date' => '2026-01-10',
+            'approval_date' => '2026-02-15',
+            'publication_date' => null,
+            'status' => 'A',
+        ]);
+
+        $event = Event::factory()->create(['nome' => 'Congresso Nacional de Pesquisa']);
+
+        EventParticipation::create([
+            'academic_bond_id' => $bond->id,
+            'event_id' => $event->id,
+            'title' => 'Trabalho apresentado no evento',
+            'name' => 'Congresso Nacional de Pesquisa',
+            'location' => 'Belo Horizonte',
+            'year' => 2026,
+            'type' => 'Congresso',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson("/api/discentes/{$discente->id}/academic-bond-details");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('academic_bonds.0.publications.0.title', 'Produção em periódico do mapa')
+            ->assertJsonPath('academic_bonds.0.publications.0.journal', 'Revista Brasileira de Pesquisa')
+            ->assertJsonPath('academic_bonds.0.publications.0.status', 'Aprovação')
+            ->assertJsonPath('academic_bonds.0.publications.0.date', '15/02/2026')
+            ->assertJsonPath('academic_bonds.0.event_participations.0.event', 'Congresso Nacional de Pesquisa')
+            ->assertJsonPath('academic_bonds.0.event_participations.0.title', 'Trabalho apresentado no evento')
+            ->assertJsonPath('academic_bonds.0.event_participations.0.location', 'Belo Horizonte')
+            ->assertJsonPath('academic_bonds.0.event_participations.0.year', 2026)
+            ->assertJsonPath('academic_bonds.0.event_participations.0.type', 'Congresso');
     }
 
     public function test_admin_can_create_discente_with_master_level(): void
