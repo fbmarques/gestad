@@ -809,6 +809,14 @@ const ReportDocument = ({
           font-size: 12px;
           margin-top: 2px;
         }
+        .report-legend {
+          margin-top: 16px;
+          color: #374151;
+          font-size: 13px;
+        }
+        .report-legend p {
+          margin: 0;
+        }
         .report-footer {
           border-top: 2px solid #e5e7eb;
           margin-top: 24px;
@@ -886,6 +894,12 @@ const ReportDocument = ({
         </section>
 
         {renderTable()}
+
+        {reportType === "prazos" && (
+          <section className="report-legend">
+            <p><strong>Legenda para Artigos:</strong> S = Submetido, A = Aceito e P = Publicado.</p>
+          </section>
+        )}
 
         <footer className="report-footer">
           <p>GESTAD • Relatório acadêmico para acompanhamento docente.</p>

@@ -174,9 +174,8 @@ class ReportController extends Controller
 
         $publicationsByBond = Publication::query()
             ->whereIn('academic_bond_id', $bondIds)
-            ->groupBy('academic_bond_id')
-            ->selectRaw('academic_bond_id, COUNT(*) as total')
-            ->pluck('total', 'academic_bond_id');
+            ->get()
+            ->groupBy('academic_bond_id');
 
         $columns = ['Orientando', 'Modalidade', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'];
         if ($includeAdvisor) {
@@ -192,8 +191,6 @@ class ReportController extends Controller
                 $hasEnoughCredits = ((int) ($creditsByBond[$bond->id] ?? 0)) >= $requiredCredits;
                 $hasEvents = ((int) ($eventsByBond[$bond->id] ?? 0)) > 0;
 
-                $requiredArticles = 2;
-                $hasEnoughArticles = ((int) ($publicationsByBond[$bond->id] ?? 0)) >= $requiredArticles;
                 $remainingDays = $bond->end_date
                     ? $today->diffInDays($bond->end_date->copy()->startOfDay(), false)
                     : '-';
@@ -206,7 +203,9 @@ class ReportController extends Controller
                     'remaining_days' => $remainingDays,
                     'credits' => $hasEnoughCredits ? 'Ok' : '[-]',
                     'events' => $hasEvents ? 'Ok' : '[-]',
-                    'articles' => $hasEnoughArticles ? 'Ok' : '[-]',
+                    'articles' => $this->formatArticleStageCounts(
+                        $publicationsByBond->get($bond->id, collect())
+                    ),
                 ];
 
                 return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
@@ -238,6 +237,26 @@ class ReportController extends Controller
                 return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
+    }
+
+    private function formatArticleStageCounts(Collection $publications): string
+    {
+        $counts = $this->countPublicationStages($publications);
+        $parts = [];
+
+        if ($counts['submission'] > 0) {
+            $parts[] = "{$counts['submission']}-S";
+        }
+
+        if ($counts['approval'] > 0) {
+            $parts[] = "{$counts['approval']}-A";
+        }
+
+        if ($counts['publication'] > 0) {
+            $parts[] = "{$counts['publication']}-P";
+        }
+
+        return $parts ? implode(', ', $parts) : '[-]';
     }
 
     private function buildAcessosReport(Collection $bonds, bool $includeAdvisor): array

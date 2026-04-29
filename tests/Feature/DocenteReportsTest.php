@@ -179,10 +179,20 @@ class DocenteReportsTest extends TestCase
         ]);
 
         $journal = Journal::factory()->create();
-        Publication::factory()->count(2)->create([
+        Publication::factory()->create([
             'academic_bond_id' => $bond->id,
             'journal_id' => $journal->id,
             'status' => 'S',
+            'approval_date' => null,
+            'publication_date' => null,
+        ]);
+
+        Publication::factory()->create([
+            'academic_bond_id' => $bond->id,
+            'journal_id' => $journal->id,
+            'status' => 'P',
+            'approval_date' => '2026-02-10',
+            'publication_date' => '2026-03-10',
         ]);
 
         $prazosResponse = $this->actingAs($docente, 'sanctum')
@@ -197,7 +207,7 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.remaining_days', 268)
             ->assertJsonPath('rows.0.credits', 'Ok')
             ->assertJsonPath('rows.0.events', 'Ok')
-            ->assertJsonPath('rows.0.articles', 'Ok');
+            ->assertJsonPath('rows.0.articles', '1-S, 1-P');
 
         $definicoesResponse = $this->actingAs($docente, 'sanctum')
             ->getJson('/api/reports/docente/definicoes?active_role=docente');
