@@ -510,6 +510,7 @@ const ReportDocument = ({
               <tr>
                 {advisorHeader}
                 <th>Orientando</th>
+                <th>Modalidade</th>
                 <th className="report-table-center">Entrada</th>
                 <th className="report-table-center">Saída Prevista</th>
                 <th className="report-table-center">Dias</th>
@@ -523,6 +524,7 @@ const ReportDocument = ({
                 <tr key={index}>
                   {advisorCell(row)}
                   <td>{row.student_name as string}</td>
+                  <td>{row.modality as string}</td>
                   <td className="report-table-center">{row.start_date as string}</td>
                   <td className="report-table-center">{row.end_date as string}</td>
                   <td className="report-table-center">{row.remaining_days as string | number}</td>
@@ -541,6 +543,7 @@ const ReportDocument = ({
               <tr>
                 {advisorHeader}
                 <th>Orientando</th>
+                <th>Modalidade</th>
                 <th>Problema</th>
                 <th>Questão</th>
                 <th>Objetivos</th>
@@ -552,6 +555,7 @@ const ReportDocument = ({
                 <tr key={index}>
                   {advisorCell(row)}
                   <td>{row.student_name as string}</td>
+                  <td>{row.modality as string}</td>
                   <td>{row.problem as string}</td>
                   <td>{row.question as string}</td>
                   <td>{row.objectives as string}</td>

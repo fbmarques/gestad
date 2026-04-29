@@ -178,7 +178,9 @@ class DocenteReportsTest extends TestCase
             ->getJson('/api/reports/docente/prazos?active_role=docente');
 
         $prazosResponse->assertStatus(200)
+            ->assertJsonPath('columns.1', 'Modalidade')
             ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.modality', 'Mestrado')
             ->assertJsonPath('rows.0.start_date', '15/01/2025')
             ->assertJsonPath('rows.0.end_date', '15/01/2027')
             ->assertJsonPath('rows.0.remaining_days', 268)
@@ -190,7 +192,9 @@ class DocenteReportsTest extends TestCase
             ->getJson('/api/reports/docente/definicoes?active_role=docente');
 
         $definicoesResponse->assertStatus(200)
+            ->assertJsonPath('columns.1', 'Modalidade')
             ->assertJsonPath('rows.0.student_name', $student->name)
+            ->assertJsonPath('rows.0.modality', 'Mestrado')
             ->assertJsonPath('rows.0.problem', 'Ok')
             ->assertJsonPath('rows.0.question', '[-]')
             ->assertJsonPath('rows.0.objectives', 'Ok')

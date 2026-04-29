@@ -182,7 +182,7 @@ class ReportController extends Controller
             ->selectRaw('academic_bond_id, COUNT(*) as total')
             ->pluck('total', 'academic_bond_id');
 
-        $columns = ['Orientando', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'];
+        $columns = ['Orientando', 'Modalidade', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'];
         if ($includeAdvisor) {
             array_unshift($columns, 'Orientador');
         }
@@ -204,6 +204,7 @@ class ReportController extends Controller
 
                 $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
+                    'modality' => $this->formatLevel($bond->level),
                     'start_date' => $bond->start_date?->format('d/m/Y') ?? '-',
                     'end_date' => $bond->end_date?->format('d/m/Y') ?? '-',
                     'remaining_days' => $remainingDays,
@@ -219,7 +220,7 @@ class ReportController extends Controller
 
     private function buildDefinicoesReport(Collection $bonds, bool $includeAdvisor): array
     {
-        $columns = ['Orientando', 'Problema', 'Questão', 'Objetivos', 'Metodologia'];
+        $columns = ['Orientando', 'Modalidade', 'Problema', 'Questão', 'Objetivos', 'Metodologia'];
         if ($includeAdvisor) {
             array_unshift($columns, 'Orientador');
         }
@@ -231,6 +232,7 @@ class ReportController extends Controller
             'rows' => $bonds->map(function (AcademicBond $bond) use ($includeAdvisor) {
                 $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
+                    'modality' => $this->formatLevel($bond->level),
                     'problem' => $bond->problem_defined ? 'Ok' : '[-]',
                     'question' => $bond->question_defined ? 'Ok' : '[-]',
                     'objectives' => $bond->objectives_defined ? 'Ok' : '[-]',
