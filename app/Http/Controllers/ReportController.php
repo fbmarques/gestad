@@ -26,24 +26,35 @@ class ReportController extends Controller
 
         $activeRole = $request->query('active_role', '');
 
+        $isDocenteView = $activeRole === 'docente' || ($user->isDocente() && ! $user->isAdmin());
+        $isAdminView = ! $isDocenteView && $user->isAdmin();
+
         $bonds = AcademicBond::query()
             ->where('status', 'active')
-            ->with(['student:id,name,email,last_access_at', 'agency:id,name,alias'])
-            ->when($activeRole === 'docente' || ($user->isDocente() && ! $user->isAdmin()), function ($query) use ($user) {
+            ->with(['student:id,name,email,last_access_at', 'advisor:id,name', 'agency:id,name,alias'])
+            ->when($isDocenteView, function ($query) use ($user) {
                 $query->where(function ($bondQuery) use ($user) {
                     $bondQuery->where('advisor_id', $user->id)
                         ->orWhere('co_advisor_id', $user->id);
                 });
             })
-            ->orderBy('level')
+            ->when($isAdminView, function ($query) {
+                $query->leftJoin('users as advisors', 'academic_bonds.advisor_id', '=', 'advisors.id')
+                    ->leftJoin('users as students', 'academic_bonds.student_id', '=', 'students.id')
+                    ->select('academic_bonds.*')
+                    ->orderBy('advisors.name')
+                    ->orderBy('students.name');
+            }, function ($query) {
+                $query->orderBy('level');
+            })
             ->get();
 
         $payload = match ($type) {
-            'orientandos' => $this->buildOrientandosReport($bonds),
-            'producoes' => $this->buildProducoesReport($bonds),
-            'prazos' => $this->buildPrazosReport($bonds),
-            'definicoes' => $this->buildDefinicoesReport($bonds),
-            'acessos' => $this->buildAcessosReport($bonds),
+            'orientandos' => $this->buildOrientandosReport($bonds, $isAdminView),
+            'producoes' => $this->buildProducoesReport($bonds, $isAdminView),
+            'prazos' => $this->buildPrazosReport($bonds, $isAdminView),
+            'definicoes' => $this->buildDefinicoesReport($bonds, $isAdminView),
+            'acessos' => $this->buildAcessosReport($bonds, $isAdminView),
         };
 
         return response()->json([
@@ -56,25 +67,32 @@ class ReportController extends Controller
         ]);
     }
 
-    private function buildOrientandosReport(Collection $bonds): array
+    private function buildOrientandosReport(Collection $bonds, bool $includeAdvisor): array
     {
+        $columns = ['Orientando', 'Email', 'Modalidade', 'Entrada', 'Saída'];
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
         return [
             'title' => 'Acompanhamento de Orientandos',
             'subtitle' => 'Nome, email, modalidade e período de vínculo dos orientandos ativos.',
-            'columns' => ['Orientando', 'Email', 'Modalidade', 'Entrada', 'Saída'],
-            'rows' => $bonds->map(function (AcademicBond $bond) {
-                return [
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($includeAdvisor) {
+                $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'email' => $bond->student?->email ?? '-',
                     'modality' => $this->formatLevel($bond->level),
                     'start_date' => $bond->start_date?->format('d/m/Y') ?? '-',
                     'end_date' => $bond->end_date?->format('d/m/Y') ?? '-',
                 ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
     }
 
-    private function buildProducoesReport(Collection $bonds): array
+    private function buildProducoesReport(Collection $bonds, bool $includeAdvisor): array
     {
         $studentIds = $bonds->pluck('student_id')->filter()->unique()->values();
 
@@ -86,22 +104,29 @@ class ReportController extends Controller
             ->get()
             ->groupBy('student_id');
 
+        $columns = ['Orientando', 'Modalidade', 'Submissão', 'Aprovação', 'Publicação'];
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
         return [
             'title' => 'Produção Acadêmica',
             'subtitle' => 'Produções registradas por orientando no sistema.',
-            'columns' => ['Orientando', 'Modalidade', 'Submissão', 'Aprovação', 'Publicação'],
-            'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByStudent) {
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($publicationsByStudent, $includeAdvisor) {
                 $counts = $this->countPublicationStages(
                     $publicationsByStudent->get($bond->student_id, collect())
                 );
 
-                return [
+                $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'modality' => $this->formatLevel($bond->level),
                     'submission_count' => $counts['submission'],
                     'approval_count' => $counts['approval'],
                     'publication_count' => $counts['publication'],
                 ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
     }
@@ -133,7 +158,7 @@ class ReportController extends Controller
 
         return 'submission';
     }
-    private function buildPrazosReport(Collection $bonds): array
+    private function buildPrazosReport(Collection $bonds, bool $includeAdvisor): array
     {
         $bondIds = $bonds->pluck('id');
         $today = now()->startOfDay();
@@ -157,11 +182,16 @@ class ReportController extends Controller
             ->selectRaw('academic_bond_id, COUNT(*) as total')
             ->pluck('total', 'academic_bond_id');
 
+        $columns = ['Orientando', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'];
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
         return [
             'title' => 'Prazos e Defesas',
             'subtitle' => 'Acompanhamento de saída prevista e cumprimento de requisitos acadêmicos.',
-            'columns' => ['Orientando', 'Entrada', 'Saída Prevista', 'Dias', 'Créditos', 'Eventos', 'Artigos'],
-            'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $eventsByBond, $publicationsByBond, $today) {
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($creditsByBond, $eventsByBond, $publicationsByBond, $today, $includeAdvisor) {
                 $requiredCredits = $bond->level === 'doctorate' ? 22 : 18;
                 $hasEnoughCredits = ((int) ($creditsByBond[$bond->id] ?? 0)) >= $requiredCredits;
                 $hasEvents = ((int) ($eventsByBond[$bond->id] ?? 0)) > 0;
@@ -172,7 +202,7 @@ class ReportController extends Controller
                     ? $today->diffInDays($bond->end_date->copy()->startOfDay(), false)
                     : '-';
 
-                return [
+                $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'start_date' => $bond->start_date?->format('d/m/Y') ?? '-',
                     'end_date' => $bond->end_date?->format('d/m/Y') ?? '-',
@@ -181,42 +211,67 @@ class ReportController extends Controller
                     'events' => $hasEvents ? 'Ok' : '[-]',
                     'articles' => $hasEnoughArticles ? 'Ok' : '[-]',
                 ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
     }
 
-    private function buildDefinicoesReport(Collection $bonds): array
+    private function buildDefinicoesReport(Collection $bonds, bool $includeAdvisor): array
     {
+        $columns = ['Orientando', 'Problema', 'Questão', 'Objetivos', 'Metodologia'];
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
         return [
             'title' => 'Definições de Pesquisa',
             'subtitle' => 'Registro das definições essenciais de pesquisa por orientando.',
-            'columns' => ['Orientando', 'Problema', 'Questão', 'Objetivos', 'Metodologia'],
-            'rows' => $bonds->map(function (AcademicBond $bond) {
-                return [
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($includeAdvisor) {
+                $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'problem' => $bond->problem_defined ? 'Ok' : '[-]',
                     'question' => $bond->question_defined ? 'Ok' : '[-]',
                     'objectives' => $bond->objectives_defined ? 'Ok' : '[-]',
                     'methodology' => $bond->methodology_defined ? 'Ok' : '[-]',
                 ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
     }
 
-    private function buildAcessosReport(Collection $bonds): array
+    private function buildAcessosReport(Collection $bonds, bool $includeAdvisor): array
     {
+        $columns = ['Discente', 'Modalidade', 'Último Acesso'];
+        if ($includeAdvisor) {
+            array_unshift($columns, 'Orientador');
+        }
+
         return [
             'title' => 'Último Acesso ao Sistema',
             'subtitle' => 'Consulta do último acesso registrado para cada orientando ativo.',
-            'columns' => ['Discente', 'Modalidade', 'Último Acesso'],
-            'rows' => $bonds->map(function (AcademicBond $bond) {
-                return [
+            'columns' => $columns,
+            'rows' => $bonds->map(function (AcademicBond $bond) use ($includeAdvisor) {
+                $row = [
                     'student_name' => $bond->student?->name ?? 'Sem nome',
                     'modality' => $this->formatLevel($bond->level),
                     'last_access_at' => $bond->student?->last_access_at?->format('d/m/Y H:i:s') ?? 'Sem acesso.',
                 ];
+
+                return $this->withAdvisorColumn($row, $bond, $includeAdvisor);
             })->values(),
         ];
+    }
+
+    private function withAdvisorColumn(array $row, AcademicBond $bond, bool $includeAdvisor): array
+    {
+        if (! $includeAdvisor) {
+            return $row;
+        }
+
+        return ['advisor_name' => $bond->advisor?->name ?? 'Sem orientador'] + $row;
     }
 
     private function formatLevel(string $level): string

@@ -442,6 +442,10 @@ const ReportDocument = ({
   reportType: DocenteReportType;
 }) => {
   const generatedAt = formatGeneratedAt(report.generated_at);
+  const showAdvisorColumn = report.columns[0] === "Orientador";
+  const advisorHeader = showAdvisorColumn ? <th>Orientador</th> : null;
+  const advisorCell = (row: DocenteReportResponse["rows"][number]) =>
+    showAdvisorColumn ? <td>{row.advisor_name as string}</td> : null;
 
   const renderTable = () => {
     switch (reportType) {
@@ -450,6 +454,7 @@ const ReportDocument = ({
           <table className="report-table">
             <thead>
               <tr>
+                {advisorHeader}
                 <th>Orientando</th>
                 <th>Email</th>
                 <th>Modalidade</th>
@@ -460,6 +465,7 @@ const ReportDocument = ({
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
+                  {advisorCell(row)}
                   <td>{row.student_name as string}</td>
                   <td>{row.email as string}</td>
                   <td>{row.modality as string}</td>
@@ -475,6 +481,7 @@ const ReportDocument = ({
           <table className="report-table">
             <thead>
               <tr>
+                {advisorHeader}
                 <th>Orientando</th>
                 <th>Modalidade</th>
                 <th className="report-table-center">Submissão</th>
@@ -485,6 +492,7 @@ const ReportDocument = ({
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
+                  {advisorCell(row)}
                   <td>{row.student_name as string}</td>
                   <td>{row.modality as string}</td>
                   <td className="report-table-center">{row.submission_count as number}</td>
@@ -500,6 +508,7 @@ const ReportDocument = ({
           <table className="report-table">
             <thead>
               <tr>
+                {advisorHeader}
                 <th>Orientando</th>
                 <th className="report-table-center">Entrada</th>
                 <th className="report-table-center">Saída Prevista</th>
@@ -512,6 +521,7 @@ const ReportDocument = ({
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
+                  {advisorCell(row)}
                   <td>{row.student_name as string}</td>
                   <td className="report-table-center">{row.start_date as string}</td>
                   <td className="report-table-center">{row.end_date as string}</td>
@@ -529,6 +539,7 @@ const ReportDocument = ({
           <table className="report-table">
             <thead>
               <tr>
+                {advisorHeader}
                 <th>Orientando</th>
                 <th>Problema</th>
                 <th>Questão</th>
@@ -539,6 +550,7 @@ const ReportDocument = ({
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
+                  {advisorCell(row)}
                   <td>{row.student_name as string}</td>
                   <td>{row.problem as string}</td>
                   <td>{row.question as string}</td>
@@ -554,6 +566,7 @@ const ReportDocument = ({
           <table className="report-table">
             <thead>
               <tr>
+                {advisorHeader}
                 <th>Discente</th>
                 <th>Modalidade</th>
                 <th>Último Acesso</th>
@@ -562,6 +575,7 @@ const ReportDocument = ({
             <tbody>
               {report.rows.map((row, index) => (
                 <tr key={index}>
+                  {advisorCell(row)}
                   <td>{row.student_name as string}</td>
                   <td>{row.modality as string}</td>
                   <td>{row.last_access_at as string}</td>

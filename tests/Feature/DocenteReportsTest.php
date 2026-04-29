@@ -59,6 +59,67 @@ class DocenteReportsTest extends TestCase
             ->assertJsonPath('rows.0.end_date', '10/03/2027');
     }
 
+    public function test_admin_reports_include_advisor_as_first_column_and_order_by_advisor_then_student(): void
+    {
+        $adminRole = Role::create(['id' => 1, 'slug' => 'admin', 'name' => 'Administrador']);
+        $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
+
+        $admin = User::factory()->create();
+        $admin->roles()->attach($adminRole->id);
+
+        $aliceAdvisor = User::factory()->create(['name' => 'Alice Orientadora']);
+        $aliceAdvisor->roles()->attach($docenteRole->id);
+
+        $brunoAdvisor = User::factory()->create(['name' => 'Bruno Orientador']);
+        $brunoAdvisor->roles()->attach($docenteRole->id);
+
+        $zoeStudent = User::factory()->create(['name' => 'Zoe Discente']);
+        $carlosStudent = User::factory()->create(['name' => 'Carlos Discente']);
+        $anaStudent = User::factory()->create(['name' => 'Ana Discente']);
+
+        AcademicBond::factory()->create([
+            'student_id' => $zoeStudent->id,
+            'advisor_id' => $aliceAdvisor->id,
+            'status' => 'active',
+            'level' => 'master',
+        ]);
+
+        AcademicBond::factory()->create([
+            'student_id' => $anaStudent->id,
+            'advisor_id' => $brunoAdvisor->id,
+            'status' => 'active',
+            'level' => 'master',
+        ]);
+
+        AcademicBond::factory()->create([
+            'student_id' => $carlosStudent->id,
+            'advisor_id' => $aliceAdvisor->id,
+            'status' => 'active',
+            'level' => 'doctorate',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/reports/docente/orientandos?active_role=admin');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('columns.0', 'Orientador')
+            ->assertJsonPath('columns.1', 'Orientando')
+            ->assertJsonPath('rows.0.advisor_name', 'Alice Orientadora')
+            ->assertJsonPath('rows.0.student_name', 'Carlos Discente')
+            ->assertJsonPath('rows.1.advisor_name', 'Alice Orientadora')
+            ->assertJsonPath('rows.1.student_name', 'Zoe Discente')
+            ->assertJsonPath('rows.2.advisor_name', 'Bruno Orientador')
+            ->assertJsonPath('rows.2.student_name', 'Ana Discente');
+
+        foreach (['producoes', 'prazos', 'definicoes', 'acessos'] as $reportType) {
+            $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/reports/docente/{$reportType}?active_role=admin")
+                ->assertStatus(200)
+                ->assertJsonPath('columns.0', 'Orientador')
+                ->assertJsonPath('rows.0.advisor_name', 'Alice Orientadora');
+        }
+    }
+
     public function test_docente_can_get_prazos_and_definicoes_reports_with_computed_flags(): void
     {
         $docenteRole = Role::create(['id' => 2, 'slug' => 'docente', 'name' => 'Docente']);
